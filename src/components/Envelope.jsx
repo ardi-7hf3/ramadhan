@@ -3,25 +3,22 @@ import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
 /**
- * ALUR ANIMASI TUTUP KARTU:
+ * ALUR ANIMASI BUKA AMPLOP:
+ *  IDLE → OPENING (760ms flap buka) → PEEKING
+ *  Kartu LANGSUNG tampak dari dalam amplop — tanpa fade/slide-up animation.
  *
- *  FULLSCREEN
- *    ↓ klik close
- *  RETURNING    (300ms)  — overlay fade out
- *    ↓
- *  ABOVE_FLAP   (380ms)  — stage card muncul di ATAS amplop (z:20, flap masih terbuka)
- *    ↓
- *  ENTERING     (700ms)  — kartu meluncur masuk ke dalam amplop (z:20, TERLIHAT JELAS)
- *    ↓
- *  CLOSING_FLAP (650ms)  — flap menutup dari atas (setelah kartu sudah di dalam)
- *    ↓
- *  IDLE                  — amplop tertutup rapat
+ * ALUR ANIMASI TUTUP KARTU & AMPLOP:
+ *  FULLSCREEN → RETURNING (300ms) → ABOVE_FLAP (380ms) → ENTERING (650ms)
+ *  → CLOSING_FLAP (650ms) → IDLE → onEnvelopeClosed() dipanggil
+ *  User kemudian bisa buka amplop lagi.
  *
- * z-index hierarchy:
- *   stageCard (ABOVE_FLAP+ENTERING) → z:20  ← DI ATAS SEGALANYA
- *   flap                            → z:15  ← di atas body, bawah stageCard
+ * Kartu saat ENTERING: bergerak ke ATAS (translateY negatif) masuk ke dalam slot.
+ *
+ * z-index:
+ *   stageCard (ABOVE_FLAP+ENTERING) → z:20
+ *   flap                            → z:15
  *   envelope body                   → z:10
- *   inside card                     → z:3   (overflow:hidden)
+ *   inside card (overflow:hidden)   → z:3
  */
 
 const PHASE = {
@@ -45,12 +42,13 @@ const Envelope = ({
   onOpenEnvelope,
   onViewCard,
   onCloseCard,
+  onEnvelopeClosed,
   onShare,
   onSave,
 }) => {
-  const [phase, setPhase] = useState(PHASE.IDLE)
-  const timers   = useRef([])
-  const phaseRef = useRef(PHASE.IDLE)
+  const [phase, setPhase]   = useState(PHASE.IDLE)
+  const timers              = useRef([])
+  const phaseRef            = useRef(PHASE.IDLE)
 
   useEffect(() => { phaseRef.current = phase }, [phase])
 
@@ -65,7 +63,7 @@ const Envelope = ({
   useEffect(() => {
     if (!envelopeOpen || phaseRef.current !== PHASE.IDLE) return
     setPhase(PHASE.OPENING)
-    go(PHASE.PEEKING, 860)
+    go(PHASE.PEEKING, 760)
   }, [envelopeOpen, go])
 
   // ── Buka kartu fullscreen ──
@@ -75,78 +73,71 @@ const Envelope = ({
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // ── Tutup kartu ──
-  // Seperti orang sungguhan memasukkan kartu ke amplop:
-  // 1. Kartu kecil tampak di atas amplop (flap masih terbuka)
-  // 2. Kartu meluncur masuk ke dalam amplop (kartu tetap terlihat, di atas flap)
-  // 3. BARU SETELAH kartu masuk, flap menutup dari atas
+  // ── Tutup kartu → masukkan ke amplop → tutup flap → IDLE → notify parent ──
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     const T0 = 300   // overlay fade out
     const T1 = 380   // stage card diam di atas flap
-    const T2 = 700   // slide kartu masuk ke amplop
+    const T2 = 650   // kartu naik masuk ke slot amplop
     const T3 = 650   // flap menutup
     setPhase(PHASE.RETURNING)
     go(PHASE.ABOVE_FLAP,   T0)
     go(PHASE.ENTERING,     T0 + T1)
     go(PHASE.CLOSING_FLAP, T0 + T1 + T2)
     go(PHASE.IDLE,         T0 + T1 + T2 + T3)
-  }, [cardViewing, go])
+    // Setelah amplop tertutup rapat, beritahu App supaya reset state
+    const doneId = setTimeout(() => {
+      if (onEnvelopeClosed) onEnvelopeClosed()
+    }, T0 + T1 + T2 + T3 + 50)
+    timers.current.push(doneId)
+  }, [cardViewing, go, onEnvelopeClosed])
 
   const is    = p       => phase === p
   const isAny = (...ps) => ps.includes(phase)
 
-  // Flap terbuka selama kartu masuk, baru menutup di CLOSING_FLAP
   const flapOpen = isAny(
     PHASE.OPENING, PHASE.PEEKING, PHASE.FLYING,
     PHASE.FULLSCREEN, PHASE.RETURNING,
     PHASE.ABOVE_FLAP, PHASE.ENTERING
   )
-  const sealGone   = phase >= PHASE.OPENING && !is(PHASE.IDLE)
-  const insideShow = phase >= PHASE.OPENING
+  const sealGone   = !is(PHASE.IDLE)
+  const insideShow = !is(PHASE.IDLE)
+
+  // ── Inside card ──
+  // Langsung tampak (opacity 1) saat PEEKING tanpa animasi fade
+  const cardInsideTop = isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN) ? '5%' : '8%'
+  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN) ? 1 : 0
+  // Tidak ada transition opacity — kartu langsung muncul
+  const cardInsideTransition = isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN)
+    ? 'top 0.45s cubic-bezier(0.22,1,0.36,1)'
+    : 'none'
+  const cardClickable = is(PHASE.PEEKING)
 
   // ── Stage card ──
-  // z:20 saat ABOVE_FLAP & ENTERING → PASTI di atas flap (z:15) dan envelope (z:10)
-  // Kartu terlihat jelas saat di atas amplop dan saat meluncur masuk
   const showStageCard = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING, PHASE.CLOSING_FLAP)
-
-  const stageZIndex = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING) ? 20 : 8
+  const stageZIndex   = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING) ? 20 : 8
 
   const stageTransform = (() => {
-    if (is(PHASE.ABOVE_FLAP))    return 'translateY(0) translateZ(0)'
-    if (is(PHASE.ENTERING))      return 'translateY(62%) translateZ(0)'
-    if (is(PHASE.CLOSING_FLAP))  return 'translateY(62%) translateZ(0)'
-    return 'translateY(0) translateZ(0)'
+    if (is(PHASE.ABOVE_FLAP))   return 'translateY(0%) translateZ(0)'
+    // Kartu naik ke ATAS masuk ke dalam slot amplop (nilai negatif = naik)
+    if (is(PHASE.ENTERING))     return 'translateY(-55%) translateZ(0)'
+    if (is(PHASE.CLOSING_FLAP)) return 'translateY(-55%) translateZ(0)'
+    return 'translateY(0%) translateZ(0)'
   })()
 
   const stageOpacity = (() => {
-    if (is(PHASE.ABOVE_FLAP))    return 1
-    if (is(PHASE.ENTERING))      return 1   // TETAP TERLIHAT saat meluncur!
-    if (is(PHASE.CLOSING_FLAP))  return 0   // baru hilang setelah masuk
+    if (is(PHASE.ABOVE_FLAP))   return 1
+    if (is(PHASE.ENTERING))     return 1   // tetap terlihat saat naik masuk
+    if (is(PHASE.CLOSING_FLAP)) return 0   // hilang setelah masuk
     return 0
   })()
 
   const stageTrans = (() => {
-    if (is(PHASE.ABOVE_FLAP))    return 'opacity 0.3s ease'
-    if (is(PHASE.ENTERING))      return 'transform 0.65s cubic-bezier(0.4,0,0.55,1)'
-    if (is(PHASE.CLOSING_FLAP))  return 'opacity 0.12s ease'
+    if (is(PHASE.ABOVE_FLAP))   return 'opacity 0.3s ease'
+    if (is(PHASE.ENTERING))     return 'transform 0.6s cubic-bezier(0.4,0,0.55,1)'
+    if (is(PHASE.CLOSING_FLAP)) return 'opacity 0.12s ease'
     return 'none'
   })()
-
-  // ── Inside card (overflow:hidden) ──
-  const cardInsideTop = (() => {
-    switch (phase) {
-      case PHASE.PEEKING:
-      case PHASE.FLYING:
-      case PHASE.FULLSCREEN: return '5%'
-      default:               return '10%'
-    }
-  })()
-  const cardInsideOpacity    = is(PHASE.PEEKING) ? 1 : 0
-  const cardInsideTransition = is(PHASE.PEEKING)
-    ? 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease 0.05s'
-    : 'top 0s, opacity 0s'
-  const cardClickable = is(PHASE.PEEKING)
 
   // ── Overlay ──
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
@@ -156,7 +147,7 @@ const Envelope = ({
     : is(PHASE.FLYING)
       ? 'scale(0.7) translateY(38vh) translateZ(0)'
       : 'scale(0.55) translateY(28vh) translateZ(0)'
-  const overlayCardOpacity   = overlayFull ? 1 : 0
+  const overlayCardOpacity    = overlayFull ? 1 : 0
   const overlayCardTransition = is(PHASE.RETURNING)
     ? 'transform 0.32s cubic-bezier(0.4,0,1,1), opacity 0.28s ease'
     : 'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease'
@@ -175,7 +166,6 @@ const Envelope = ({
         visibility:     overlayVisible ? 'visible' : 'hidden',
         pointerEvents:  overlayFull ? 'auto' : 'none',
       }}>
-        {/* Kartu fullscreen */}
         <div style={{
           width:         'min(520px, 92vw)',
           maxHeight:     '88dvh',
@@ -190,7 +180,7 @@ const Envelope = ({
           <MemoCard t={t} />
         </div>
 
-        {/* ── Close button ── */}
+        {/* Close button */}
         <button
           onClick={onCloseCard}
           style={{
@@ -258,10 +248,10 @@ const Envelope = ({
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
         {/* ── STAGE CARD ──
-         * z:20 saat ABOVE_FLAP & ENTERING → selalu di ATAS flap (z:15) dan envelope (z:10).
-         * Saat ABOVE_FLAP : kartu terlihat penuh di atas amplop (flap terbuka)
-         * Saat ENTERING   : kartu meluncur masuk ke bawah, TERLIHAT JELAS melewati flap
-         * Saat CLOSING_FLAP: kartu sudah di dalam (opacity 0), flap mulai menutup
+         * ABOVE_FLAP : kartu terlihat di atas amplop (flap terbuka)
+         * ENTERING   : kartu naik ke ATAS masuk ke dalam slot amplop
+         *              (translateY negatif = bergerak ke atas)
+         * CLOSING_FLAP: kartu sudah di dalam (opacity 0), flap mulai menutup
          */}
         {showStageCard && (
           <div style={{
@@ -292,7 +282,10 @@ const Envelope = ({
             zIndex:       10,
           }}
         >
-          {/* ── KARTU DI DALAM AMPLOP (overflow:hidden) ── z:3 */}
+          {/* ── KARTU DI DALAM AMPLOP (overflow:hidden) ──
+           * Kartu LANGSUNG tampak dari dalam amplop saat phase PEEKING.
+           * TIDAK ada animasi fade — opacity langsung 1.
+           */}
           <div style={{
             position:      'absolute', inset: 0,
             overflow:      'hidden',
@@ -310,7 +303,7 @@ const Envelope = ({
                 cursor:        cardClickable ? 'pointer' : 'default',
                 opacity:       cardInsideOpacity,
                 transition:    cardInsideTransition,
-                willChange:    'top, opacity',
+                willChange:    'top',
                 filter:        'drop-shadow(0 4px 18px rgba(0,0,0,0.45))',
               }}
             >
@@ -324,7 +317,7 @@ const Envelope = ({
             borderRadius:'8px 8px 14px 14px',
             background:'linear-gradient(180deg,#EACA6C 0%,#B8902A 100%)',
             opacity:    insideShow ? 1 : 0,
-            transition: 'opacity 0.45s ease 0.35s',
+            transition: 'opacity 0.4s ease 0.2s',
             pointerEvents:'none',
           }}/>
 
@@ -348,9 +341,8 @@ const Envelope = ({
           }}/>
 
           {/* TOP FLAP — z:15
-           * Di bawah stageCard (z:20) tapi di atas envelope body (z:10).
-           * Flap TETAP TERBUKA selama ABOVE_FLAP dan ENTERING.
-           * Baru menutup di CLOSING_FLAP setelah kartu masuk sepenuhnya.
+           * Terbuka selama ABOVE_FLAP & ENTERING (kartu sedang masuk).
+           * Menutup di CLOSING_FLAP setelah kartu masuk sepenuhnya.
            */}
           <div style={{
             position:'absolute', inset:0,
@@ -412,7 +404,7 @@ const Envelope = ({
             color:         'rgba(245,216,122,0.85)',
             letterSpacing: '1.5px', whiteSpace: 'nowrap',
             opacity:       is(PHASE.PEEKING) ? 1 : 0,
-            transition:    'opacity 0.3s ease 0.5s',
+            transition:    'opacity 0.3s ease 0.3s',
             animation:     is(PHASE.PEEKING) ? 'hintBounce 2s ease-in-out infinite' : 'none',
           }}>
             {t.tapToOpen || '↑ Klik kartu untuk membuka'}
