@@ -115,13 +115,17 @@ const Envelope = ({
 
   // ── Stage card ──
   const showStageCard = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING, PHASE.CLOSING_FLAP)
-  const stageZIndex   = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING) ? 20 : 8
+  const stageZIndex   = is(PHASE.ABOVE_FLAP) ? 20 : 9
 
   const stageTransform = (() => {
     if (is(PHASE.ABOVE_FLAP))   return 'translateY(0%) translateZ(0)'
-    // Kartu naik ke ATAS masuk ke dalam slot amplop (nilai negatif = naik)
-    if (is(PHASE.ENTERING))     return 'translateY(-55%) translateZ(0)'
-    if (is(PHASE.CLOSING_FLAP)) return 'translateY(-55%) translateZ(0)'
+    // Kartu bergerak ke BAWAH masuk ke dalam slot amplop.
+    // Stage card posisinya bottom:46% (tepat di atas bukaan amplop).
+    // Gerak ke bawah (positif) = masuk ke dalam body amplop.
+    // Envelope body (z:10) akan menutupi bagian yang sudah masuk.
+    // Flap baru menutup di CLOSING_FLAP setelah kartu masuk.
+    if (is(PHASE.ENTERING))     return 'translateY(60%) translateZ(0)'
+    if (is(PHASE.CLOSING_FLAP)) return 'translateY(60%) translateZ(0)'
     return 'translateY(0%) translateZ(0)'
   })()
 
@@ -248,9 +252,9 @@ const Envelope = ({
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
         {/* ── STAGE CARD ──
-         * ABOVE_FLAP : kartu terlihat di atas amplop (flap terbuka)
-         * ENTERING   : kartu naik ke ATAS masuk ke dalam slot amplop
-         *              (translateY negatif = bergerak ke atas)
+         * ABOVE_FLAP : kartu terlihat di atas amplop (flap terbuka) — z:20
+         * ENTERING   : kartu bergerak ke BAWAH masuk ke dalam slot amplop — z:9
+         *              envelope body (z:10) menutupi bagian bawah kartu secara alami
          * CLOSING_FLAP: kartu sudah di dalam (opacity 0), flap mulai menutup
          */}
         {showStageCard && (
