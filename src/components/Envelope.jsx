@@ -126,10 +126,14 @@ const Envelope = ({
   // Setelah ENTERED: turun ke z:3 agar flap & pentagon bisa menutup.
 
   const cardInsideTop = (() => {
-    if (isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
-              PHASE.ENTERING, PHASE.ENTERED, PHASE.CLOSING_FLAP)) return '5%'
+    // Posisi peek normal (sebagian kecil terlihat dari dalam)
+    if (isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN, PHASE.CLOSING_FLAP)) return '5%'
+    // ENTERED: kartu menjulur tinggi di atas amplop, hanya bagian bawah tertutup body
+    // (seperti gambar referensi — kartu sebagian besar masih terlihat di atas)
+    if (isAny(PHASE.ENTERING, PHASE.ENTERED)) return '-55%'
+    // ABOVE_FLAP: kartu sepenuhnya di atas, tersembunyi oleh overflow:hidden
     if (is(PHASE.ABOVE_FLAP)) return '-100%'
-    return '110%'  // IDLE, OPENING: tersembunyi di bawah
+    return '110%'  // IDLE, OPENING
   })()
 
   const cardInsideOpacity = isAny(
@@ -139,10 +143,13 @@ const Envelope = ({
 
   const cardInsideVisibility = isAny(PHASE.IDLE, PHASE.OPENING) ? 'hidden' : 'visible'
 
-  const cardInsideContainerZ = is(PHASE.ENTERING) ? 16 : 3
+  const cardInsideContainerZ = isAny(PHASE.ENTERING, PHASE.ENTERED) ? 16 : 3
 
   const cardInsideTransition = (() => {
-    if (is(PHASE.ENTERING)) return 'top 0.75s cubic-bezier(0.4,0,0.55,1)'
+    // ENTERING  : slide dari -100% ke -55% (kartu muncul menjulur dari bukaan)
+    if (is(PHASE.ENTERING))     return 'top 0.75s cubic-bezier(0.4,0,0.55,1)'
+    // CLOSING_FLAP: slide dari -55% ke 5% (kartu masuk ke dalam, flap menutup)
+    if (is(PHASE.CLOSING_FLAP)) return 'top 0.5s cubic-bezier(0.4,0,0.6,1)'
     return 'none'
   })()
 
