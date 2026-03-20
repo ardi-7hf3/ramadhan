@@ -322,6 +322,38 @@ body {
 }
 
 /* ═══════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════════ */
+/* Extra-small phones */
+@media (max-width: 360px) {
+  .greeting-card-content {
+    padding: 12px 10px !important;
+  }
+}
+
+/* Mobile: card scrollable when taller than viewport */
+@media (max-height: 700px) {
+  #card-clip-window {
+    max-height: 85vh;
+    overflow-y: auto !important;
+  }
+  #card-inner.card-rising,
+  #card-inner.card-risen {
+    position: relative !important;
+    transform: none !important;
+    bottom: auto !important;
+    left: auto !important;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 640px) {
+  .wish-card {
+    padding: 10px 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════
    TOAST NOTIFICATION
 ═══════════════════════════════════════════ */
 .toast-wrap {
