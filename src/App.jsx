@@ -20,10 +20,22 @@ const App = () => {
     return () => clearTimeout(id)
   }, [])
 
-  const toggleLang        = () => setLang(l => (l === 'id' ? 'en' : 'id'))
-  const handleOpenEnvelope = useCallback(() => { if (!envelopeOpen) setEnvelopeOpen(true) }, [envelopeOpen])
-  const handleViewCard     = useCallback(() => setCardViewing(true),  [])
-  const handleCloseCard    = useCallback(() => setCardViewing(false), [])
+  const toggleLang = () => setLang(l => (l === 'id' ? 'en' : 'id'))
+
+  // Buka amplop — bisa dipanggil berulang (dari IDLE saja)
+  const handleOpenEnvelope = useCallback(() => {
+    setEnvelopeOpen(true)
+  }, [])
+
+  // Amplop selesai menutup (dipanggil dari Envelope saat phase kembali IDLE)
+  // → reset envelopeOpen supaya amplop bisa dibuka lagi
+  const handleEnvelopeClosed = useCallback(() => {
+    setEnvelopeOpen(false)
+    setCardViewing(false)
+  }, [])
+
+  const handleViewCard  = useCallback(() => setCardViewing(true),  [])
+  const handleCloseCard = useCallback(() => setCardViewing(false), [])
 
   const triggerToast = useCallback(() => {
     setShowToast(true)
@@ -42,6 +54,9 @@ const App = () => {
     }
   }, [lang, triggerToast])
 
+  // Tampilkan tombol buka hanya saat amplop tertutup (envelopeOpen false)
+  const showOpenButton = !envelopeOpen
+
   return (
     <div className="min-h-screen font-poppins" style={{ background: '#070E1C' }}>
       <Starfield />
@@ -52,7 +67,7 @@ const App = () => {
         className="relative z-10 flex flex-col items-center justify-center px-3 sm:px-6"
         style={{ minHeight:'100dvh', paddingTop:'72px', paddingBottom:'72px', overflow:'visible' }}
       >
-        {!envelopeOpen && (
+        {showOpenButton && (
           <div className="hint-bounce mb-6 w-full flex justify-center">
             <div className="flex items-center gap-2 font-poppins font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full"
               style={{ fontSize:'clamp(0.7rem,3vw,0.875rem)', background:'rgba(201,148,26,0.08)', border:'1px solid rgba(201,148,26,0.22)', color:'#F5D87A' }}>
@@ -71,11 +86,12 @@ const App = () => {
           onOpenEnvelope={handleOpenEnvelope}
           onViewCard={handleViewCard}
           onCloseCard={handleCloseCard}
+          onEnvelopeClosed={handleEnvelopeClosed}
           onShare={handleShare}
           onSave={triggerToast}
         />
 
-        {!envelopeOpen && (
+        {showOpenButton && (
           <button onClick={handleOpenEnvelope}
             className="cta-pulse mt-6 sm:mt-8 flex items-center gap-2.5 font-poppins font-bold uppercase rounded-full"
             style={{ background:'rgba(201,148,26,0.1)', border:'1.5px solid rgba(201,148,26,0.38)', color:'#E8B84B', letterSpacing:'1.5px', fontSize:'clamp(0.65rem,2.5vw,0.75rem)', padding:'clamp(10px,2.5vw,14px) clamp(20px,5vw,32px)' }}
