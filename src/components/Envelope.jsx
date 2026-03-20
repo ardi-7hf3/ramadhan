@@ -89,30 +89,23 @@ const Envelope = ({
   const sealGone   = phase >= PHASE.OPENING
   const insideShow = phase >= PHASE.OPENING
 
-  // Berapa px kartu nongol di atas mulut amplop saat PEEKING
-  // Nilai positif = naik ke atas amplop
-  const PEEK_PX   = 90    // 90px bagian atas kartu terlihat
-  const HIDDEN_PX = -20   // sedikit di bawah mulut = tersembunyi di balik mask
-
-  // translateY kartu (relatif terhadap posisinya di dalam wrapper)
-  // Kartu diposisikan absolute bottom:0 (dasar wrapper = dasar amplop)
-  // Kita geser naik pakai px agar prediktabel
-  const cardBottom = (() => {
+  // ── Posisi kartu DI DALAM amplop (clip oleh overflow:hidden) ──
+  // Animasi via `top`: dari bawah clip container (tersembunyi) ke atas yang terlihat.
+  // Kartu tidak pernah keluar dari batas amplop — ditampilkan melalui bukaan flap.
+  const cardInsideTop = (() => {
     switch (phase) {
       case PHASE.IDLE:
-      case PHASE.OPENING:    return `${HIDDEN_PX}px`   // sedikit di bawah mulut
-      case PHASE.PEEKING:    return `calc(100% - ${PEEK_PX}px)` // nongol PEEK_PX di atas mulut
+      case PHASE.OPENING:    return '110%'   // di bawah area clip → tersembunyi
+      case PHASE.PEEKING:    return '5%'     // top kartu muncul di area dalam amplop
       case PHASE.FLYING:
-      case PHASE.FULLSCREEN: return 'calc(100% + 20px)'         // terbang ke atas
-      case PHASE.RETURNING:  return `calc(100% - ${PEEK_PX}px)` // kembali peek
-      default:               return `${HIDDEN_PX}px`
+      case PHASE.FULLSCREEN: return '5%'     // tetap, tapi opacity:0 (overlay ambil alih)
+      case PHASE.RETURNING:  return '5%'     // kembali peek
+      default:               return '110%'
     }
   })()
 
-  const cardOpacity   = isAny(PHASE.IDLE, PHASE.OPENING) ? 0
-                      : is(PHASE.FLYING)                 ? 0.2
-                      : 1
-  const cardClickable = is(PHASE.PEEKING)
+  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.RETURNING) ? 1 : 0
+  const cardClickable     = is(PHASE.PEEKING)
 
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
   const overlayFull    = is(PHASE.FULLSCREEN)
@@ -224,57 +217,6 @@ const Envelope = ({
       ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
-        {/*
-         * ── KARTU (bebas bergerak, tidak di-clip) ──
-         *
-         * Posisi ABSOLUTE pada PARENT (bukan di dalam amplop).
-         * left/right = sama lebar dengan amplop.
-         * bottom berubah dari HIDDEN_PX → PEEK_PX saat PEEKING.
-         *
-         * Kartu NOT clipped → bagian atas yang nongol terlihat. ✓
-         * Bagian yang masih di dalam amplop? → ditutup MASK di bawah.
-         *)
-        */}
-        <div
-          onClick={cardClickable ? onViewCard : undefined}
-          style={{
-            position:      'absolute',
-            left:          '4%',
-            right:         '4%',
-            /* bottom berubah → kartu naik dari dalam amplop ke atas */
-            bottom:        cardBottom,
-            zIndex:        8,   /* di atas amplop body (z10)? Tidak — kita pakai MASK */
-            opacity:       cardOpacity,
-            cursor:        cardClickable ? 'pointer' : 'default',
-            pointerEvents: cardClickable ? 'auto' : 'none',
-            transition:    [
-              `bottom ${
-                isAny(PHASE.IDLE, PHASE.OPENING) ? '0s'
-                : isAny(PHASE.PEEKING, PHASE.RETURNING) ? '0.85s cubic-bezier(0.22,1,0.36,1)'
-                : '0.48s cubic-bezier(0.4,0,0.2,1)'
-              }`,
-              `opacity ${isAny(PHASE.IDLE, PHASE.OPENING) ? '0.3s ease' : '0.36s ease'}`,
-            ].join(', '),
-            willChange: 'bottom, opacity',
-            filter:     'drop-shadow(0 -6px 24px rgba(0,0,0,0.55))',
-          }}
-        >
-          <MemoCard t={t} visible={is(PHASE.PEEKING)} />
-        </div>
-
-        {/*
-         * ── MASK ──
-         * Ini yang menyembunyikan bagian bawah kartu
-         * yang masih di dalam amplop.
-         * Warna = warna dalam amplop (emas) saat terbuka,
-         * warna amplop luar saat tertutup.
-         * zIndex = 9 (di atas kartu z8, di bawah flap z5/seal z6
-         * RELATIF terhadap envelope body yang z10).
-         * Karena envelope body z10 > kartu z8, envelope body
-         * sendiri sudah menutupi kartu yang ada di dalam. ✓
-         *)
-        */}
-
         {/* ── ENVELOPE BODY ── */}
         <div
           className={`relative select-none ${is(PHASE.IDLE) ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
@@ -287,6 +229,46 @@ const Envelope = ({
             zIndex:       10,   /* z10 > kartu z8 → envelope menutupi bagian kartu yg di dalam ✓ */
           }}
         >
+          {/* ── KARTU DI DALAM AMPLOP ──
+           * Clip container (overflow:hidden) = kartu tidak pernah keluar dari batas amplop.
+           * Kartu dianimasikan via `top`: dari bawah (tersembunyi) naik ke area bukaan flap.
+           * z3 → di atas inner pocket/pattern, di bawah side-shadows (z3 DOM-order),
+           *        folds (z4), dan flap (z5) → flap menutup kartu saat tertutup ✓.
+           */}
+          <div style={{
+            position:      'absolute',
+            inset:         0,
+            overflow:      'hidden',
+            zIndex:        3,
+            pointerEvents: 'none',
+            borderRadius:  'inherit',
+          }}>
+            <div
+              onClick={cardClickable ? onViewCard : undefined}
+              style={{
+                position:      'absolute',
+                left:          '5%',
+                right:         '5%',
+                top:           cardInsideTop,
+                pointerEvents: cardClickable ? 'auto' : 'none',
+                cursor:        cardClickable ? 'pointer' : 'default',
+                opacity:       cardInsideOpacity,
+                transition: [
+                  `top ${
+                    isAny(PHASE.IDLE, PHASE.OPENING) ? '0s'
+                    : isAny(PHASE.PEEKING, PHASE.RETURNING) ? '0.85s cubic-bezier(0.22,1,0.36,1)'
+                    : '0.48s cubic-bezier(0.4,0,0.2,1)'
+                  }`,
+                  `opacity ${isAny(PHASE.IDLE, PHASE.OPENING) ? '0.3s ease' : '0.4s ease'}`,
+                ].join(', '),
+                willChange: 'top, opacity',
+                filter:     'drop-shadow(0 4px 18px rgba(0,0,0,0.45))',
+              }}
+            >
+              <MemoCard t={t} visible={is(PHASE.PEEKING)} />
+            </div>
+          </div>
+
           {/* Inside pocket */}
           <div style={{
             position:'absolute', inset:0, zIndex:1,
@@ -376,7 +358,7 @@ const Envelope = ({
         {/* ── HINT teks di atas amplop ── */}
         <div style={{
           position:      'absolute',
-          top:           `-${PEEK_PX + 8}px`,
+          top:           '-28px',
           left:          0, right: 0,
           display:       'flex', justifyContent: 'center',
           zIndex:        30, pointerEvents: 'none',
