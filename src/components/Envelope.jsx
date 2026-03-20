@@ -231,17 +231,17 @@ const Envelope = ({
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
         {/* ── GHOST CARD ──
-         * Diposisikan di LUAR overflow:hidden (sibling dari envelope body).
-         * bottom:100% → bawah ghost sejajar atas amplop (bukaan flap).
-         * z:9 → saat ghost turun memasuki area envelope body (z:10),
-         *        envelope body menutupi ghost secara alami. ✓
+         * z:15 → di depan semua elemen amplop termasuk flap.
+         * bottom:100% → bawah ghost sejajar atas bukaan amplop.
+         * Saat ENTERING, ghost turun + fade; amplop body (z:10) secara
+         * visual menjadi mulut yang "menelan" kartu dari bawah.
          */}
         {showGhost && (
           <div style={{
             position:   'absolute',
             left: '5%', right: '5%',
             bottom:     '100%',
-            zIndex:     9,
+            zIndex:     15,
             transform:  ghostTransform,
             opacity:    ghostOpacity,
             transition: ghostTransition,
@@ -314,15 +314,15 @@ const Envelope = ({
           }}/>
 
           {/* Left fold */}
-          <div className="absolute bottom-0 left-0 pointer-events-none" style={{
-            zIndex:4, width:'50%', height:'46%',
+          <div className="absolute left-0 pointer-events-none" style={{
+            zIndex:4, width:'50%', height:'calc(46% + 2px)', bottom: '-1px',
             background:'linear-gradient(138deg,#C8AA60 0%,#9A7830 100%)',
             clipPath:'polygon(0 100%,0 0,100% 100%)',
           }}/>
 
           {/* Right fold */}
-          <div className="absolute bottom-0 right-0 pointer-events-none" style={{
-            zIndex:4, width:'50%', height:'46%',
+          <div className="absolute right-0 pointer-events-none" style={{
+            zIndex:4, width:'50%', height:'calc(46% + 2px)', bottom: '-1px',
             background:'linear-gradient(222deg,#C8AA60 0%,#9A7830 100%)',
             clipPath:'polygon(100% 100%,100% 0,0 100%)',
           }}/>
