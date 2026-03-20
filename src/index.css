@@ -1,0 +1,382 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════
+   GOOGLE FONTS — loaded via index.html link
+═══════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   BASE RESET
+═══════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #070E1C;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════
+   CUSTOM SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0D1830; }
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 148, 26, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 148, 26, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   LOADER ANIMATIONS
+═══════════════════════════════════════════ */
+@keyframes blinkFade {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.9; }
+}
+.animate-blink-fade {
+  animation: blinkFade 2s ease-in-out infinite;
+}
+
+@keyframes barFill {
+  to { width: 100%; }
+}
+.bar-fill {
+  animation: barFill 2.6s ease forwards;
+}
+
+/* ═══════════════════════════════════════════
+   STARFIELD PARTICLES
+═══════════════════════════════════════════ */
+@keyframes starFloat {
+  0%   { transform: translateY(0) rotate(0deg);     opacity: 0; }
+  5%   { opacity: 0.7; }
+  95%  { opacity: 0.4; }
+  100% { transform: translateY(-110vh) rotate(720deg); opacity: 0; }
+}
+.star-particle {
+  animation: starFloat linear infinite;
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* ═══════════════════════════════════════════
+   ENVELOPE — FLAP 3D ROTATION
+═══════════════════════════════════════════ */
+.env-flap {
+  transform-style: preserve-3d;
+  transform-origin: top center;
+  transition: transform 0.78s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.flap-open {
+  transform: rotateX(-185deg);
+}
+
+/* ═══════════════════════════════════════════
+   WAX SEAL DISSOLVE
+═══════════════════════════════════════════ */
+.seal-wrap {
+  transition: transform 0.5s ease, opacity 0.4s ease;
+  transform-origin: center;
+}
+.seal-gone {
+  transform: scale(0) rotate(30deg) !important;
+  opacity: 0 !important;
+}
+
+/* ═══════════════════════════════════════════
+   CARD SLIDE-UP FROM ENVELOPE
+═══════════════════════════════════════════ */
+.card-peek {
+  transition:
+    bottom 1s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s ease 0.45s;
+}
+.card-visible {
+  bottom: calc(100% + 20px) !important;
+  opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════
+   ENVELOPE INSIDE REVEAL
+═══════════════════════════════════════════ */
+.env-inside {
+  transition: opacity 0.4s ease 0.55s;
+}
+.inside-show {
+  opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════
+   PAPER TEXTURE
+═══════════════════════════════════════════ */
+.paper-lines {
+  background-image: repeating-linear-gradient(
+    transparent 0px,
+    transparent 29px,
+    rgba(160, 120, 40, 0.065) 30px
+  );
+}
+
+/* ═══════════════════════════════════════════
+   GOLD SHIMMER TEXT
+═══════════════════════════════════════════ */
+@keyframes goldShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.gold-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #8B6310 0%,
+    #C9941A 20%,
+    #F5D87A 40%,
+    #E8B84B 60%,
+    #C9941A 80%,
+    #8B6310 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmer 4s linear infinite;
+}
+
+/* ═══════════════════════════════════════════
+   ORNAMENTAL DIVIDER LINE
+═══════════════════════════════════════════ */
+.ornament-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.ornament-line::before,
+.ornament-line::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 148, 26, 0.4),
+    transparent
+  );
+}
+
+/* ═══════════════════════════════════════════
+   STAGGERED CARD CONTENT REVEAL
+═══════════════════════════════════════════ */
+@keyframes fadeUpStagger {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-stagger > * {
+  opacity: 0;
+  animation: fadeUpStagger 0.6s ease both;
+}
+.reveal-stagger > *:nth-child(1)  { animation-delay: 0.05s; }
+.reveal-stagger > *:nth-child(2)  { animation-delay: 0.15s; }
+.reveal-stagger > *:nth-child(3)  { animation-delay: 0.25s; }
+.reveal-stagger > *:nth-child(4)  { animation-delay: 0.35s; }
+.reveal-stagger > *:nth-child(5)  { animation-delay: 0.45s; }
+.reveal-stagger > *:nth-child(6)  { animation-delay: 0.55s; }
+.reveal-stagger > *:nth-child(7)  { animation-delay: 0.65s; }
+.reveal-stagger > *:nth-child(8)  { animation-delay: 0.75s; }
+.reveal-stagger > *:nth-child(9)  { animation-delay: 0.85s; }
+.reveal-stagger > *:nth-child(10) { animation-delay: 0.95s; }
+.reveal-stagger > *:nth-child(11) { animation-delay: 1.05s; }
+.reveal-stagger > *:nth-child(12) { animation-delay: 1.15s; }
+
+/* ═══════════════════════════════════════════
+   LANTERN ANIMATIONS
+═══════════════════════════════════════════ */
+@keyframes lanternSwing1 {
+  0%, 100% { transform: rotate(-10deg); }
+  50%       { transform: rotate(10deg) translateY(-4px); }
+}
+@keyframes lanternSwing2 {
+  0%, 100% { transform: rotate(10deg); }
+  50%       { transform: rotate(-10deg) translateY(-4px); }
+}
+@keyframes lanternSwing3 {
+  0%, 100% { transform: rotate(-8deg); }
+  50%       { transform: rotate(8deg) translateY(-3px); }
+}
+.lantern-1 { animation: lanternSwing1 2.4s ease-in-out infinite; }
+.lantern-2 { animation: lanternSwing2 2.0s ease-in-out infinite 0.3s; }
+.lantern-3 { animation: lanternSwing3 2.6s ease-in-out infinite 0.6s; }
+
+/* ═══════════════════════════════════════════
+   WISH CARD HOVER
+═══════════════════════════════════════════ */
+.wish-card {
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+.wish-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(201, 148, 26, 0.15);
+  border-color: rgba(201, 148, 26, 0.4) !important;
+  background: rgba(201, 148, 26, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════
+   BUTTON — GOLD GRADIENT
+═══════════════════════════════════════════ */
+.btn-gold {
+  background: linear-gradient(
+    135deg,
+    #C9941A 0%,
+    #E8B84B 50%,
+    #C9941A 100%
+  );
+  background-size: 200% auto;
+  transition:
+    background-position 0.4s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.btn-gold:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(201, 148, 26, 0.5);
+}
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   BUTTON — TEAL OUTLINE
+═══════════════════════════════════════════ */
+.btn-teal-outline {
+  transition: all 0.22s ease;
+}
+.btn-teal-outline:hover {
+  background: rgba(15, 122, 107, 0.12);
+  border-color: rgba(62, 203, 184, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(15, 122, 107, 0.2);
+}
+.btn-teal-outline:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   LOGO CIRCLE HOVER
+═══════════════════════════════════════════ */
+.logo-circle {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.logo-circle:hover {
+  transform: scale(1.08) rotate(5deg);
+  box-shadow: 0 0 24px rgba(201, 148, 26, 0.5);
+}
+
+/* ═══════════════════════════════════════════
+   LANG BUTTON
+═══════════════════════════════════════════ */
+.lang-btn {
+  transition: all 0.25s ease;
+}
+.lang-btn:hover {
+  background: #C9941A !important;
+  color: #1A1005 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(201, 148, 26, 0.4);
+}
+
+/* ═══════════════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════════════ */
+.toast-wrap {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease;
+}
+
+/* ═══════════════════════════════════════════
+   MOON GLOW EFFECT
+═══════════════════════════════════════════ */
+@keyframes moonGlow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(201,148,26,0.5)); }
+  50%       { filter: drop-shadow(0 0 28px rgba(245,216,122,0.85)); }
+}
+.moon-glow {
+  animation: moonGlow 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* ═══════════════════════════════════════════
+   ENVELOPE HOVER LIFT
+═══════════════════════════════════════════ */
+.envelope-hover {
+  transition: transform 0.3s ease;
+}
+.envelope-hover:hover {
+  transform: translateY(-8px);
+}
+
+/* ═══════════════════════════════════════════
+   CTA PULSE BUTTON
+═══════════════════════════════════════════ */
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,148,26,0.35); }
+  50%       { box-shadow: 0 0 0 12px rgba(201,148,26,0); }
+}
+.cta-pulse {
+  animation: ctaPulse 2.2s ease-in-out infinite;
+}
+.cta-pulse:hover {
+  animation: none;
+}
+
+/* ═══════════════════════════════════════════
+   HINT TEXT BOUNCE
+═══════════════════════════════════════════ */
+@keyframes hintBounce {
+  0%, 100% { transform: translateY(0);  opacity: 0.7; }
+  50%       { transform: translateY(-6px); opacity: 1; }
+}
+.hint-bounce {
+  animation: hintBounce 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   LANGUAGE TRANSITION
+═══════════════════════════════════════════ */
+@keyframes langIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.lang-transition {
+  animation: langIn 0.35s ease both;
+}
+
+/* ═══════════════════════════════════════════
+   FADE-UP UTILITY
+═══════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.7s ease both;
+}
