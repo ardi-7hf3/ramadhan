@@ -135,25 +135,22 @@ const Envelope = ({
     : 'none'
 
   // ── Inside card (di dalam overflow:hidden) ──
-  // Hanya aktif saat PEEKING / FLYING / FULLSCREEN / ENTERED / CLOSING_FLAP.
-  // Saat ENTERED: snap langsung ke top:5% (tidak perlu animasi, stage card sudah cover).
-  const cardInsideTop = (() => {
-    switch (phase) {
-      case PHASE.PEEKING:
-      case PHASE.FLYING:
-      case PHASE.FULLSCREEN:
-      case PHASE.ENTERED:
-      case PHASE.CLOSING_FLAP:
-        return '5%'
-      default:
-        return '110%'   // tersembunyi di bawah saat IDLE/OPENING/ABOVE_FLAP/ENTERING
-    }
-  })()
+  // Inside card HANYA tampil saat stage card sudah tidak ada.
+  // Selama ABOVE_FLAP & ENTERING: stage card yang handle visual → inside card hidden.
+  // ENTERED: stage card hilang → inside card snap muncul di peek 5%.
+  const cardInsideTop = isAny(
+    PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
+    PHASE.ENTERED, PHASE.CLOSING_FLAP
+  ) ? '5%' : '110%'
 
   const cardInsideOpacity = isAny(
     PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
     PHASE.ENTERED, PHASE.CLOSING_FLAP
   ) ? 1 : 0
+
+  const cardInsideVisibility = isAny(
+    PHASE.IDLE, PHASE.OPENING, PHASE.ABOVE_FLAP, PHASE.ENTERING
+  ) ? 'hidden' : 'visible'
 
   const cardInsideTransition = 'none'  // selalu snap — stage card yang handle animasi
 
@@ -322,6 +319,7 @@ const Envelope = ({
                 left: '5%', right: '5%',
                 top:           cardInsideTop,
                 opacity:       cardInsideOpacity,
+                visibility:    cardInsideVisibility,
                 transition:    cardInsideTransition,
                 willChange:    'top',
                 pointerEvents: cardClickable ? 'auto' : 'none',
@@ -360,7 +358,10 @@ const Envelope = ({
            * z:2 di fase lain → kartu (z:3) tampak di depan pentagon
            */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            zIndex: isAny(PHASE.CLOSING_FLAP, PHASE.IDLE) ? 4 : 2,
+            // z:4 (di atas inside card z:3) di semua fase kecuali ENTERING
+            // Saat ENTERING: stage card di luar body yang handle visual, pentagon tidak perlu cover
+            // Saat PEEKING: pentagon z:4 menutupi bagian bawah kartu peek dengan benar
+            zIndex: is(PHASE.ENTERING) ? 2 : 4,
             background:'linear-gradient(160deg,#B8902A 0%,#C8AA60 30%,#B0882A 50%,#C8AA60 70%,#B8902A 100%)',
             clipPath:'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
