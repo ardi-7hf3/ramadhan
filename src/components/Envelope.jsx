@@ -109,50 +109,42 @@ const Envelope = ({
   const sealGone   = !is(PHASE.IDLE)
   const insideShow = !is(PHASE.IDLE)
 
-  // ── Stage card (di LUAR envelope body) ──
-  // z:9 → di BAWAH envelope body (z:10).
-  // Saat stage card slide turun dan melewati batas atas body amplop,
-  // body amplop secara natural menutupi bagian bawah kartu → efek masuk slot.
-  // Tidak perlu clip/overflow trick apapun.
-  const showStageCard = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING)
+  // ── Inside card (di dalam overflow:hidden envelope body) ──
+  //
+  // Animasi masuk ke amplop SEPENUHNYA via inside card + overflow:hidden.
+  // Tidak ada stage card terpisah — overflow:hidden adalah "dinding" yang
+  // memotong kartu secara alami saat slide turun dari atas.
+  //
+  // ABOVE_FLAP  : top:-100% → kartu penuh tersembunyi di atas (di luar overflow:hidden)
+  // ENTERING    : top:5%    → slide turun 750ms, overflow:hidden memotong bagian atas
+  //               yang belum masuk → efek kartu masuk dari bukaan amplop
+  // ENTERED     : top:5%    → diam di posisi peek
+  // CLOSING_FLAP: top:5%    → diam, flap menutup dari atas
+  //
+  // z-index inside card container saat ENTERING: 16 (di atas flap z:15)
+  // agar kartu terlihat saat meluncur masuk melewati bukaan amplop.
+  // Setelah ENTERED: turun ke z:3 agar flap & pentagon bisa menutup.
 
-  // Stage card posisi: bottom diukur dari bawah container (bukan dari atas).
-  // Kita pakai `top` relatif dari container scene (width=min(448px,92vw)).
-  // Envelope body paddingTop:64% → tinggi body ≈ 64% dari lebar.
-  // Saat ABOVE_FLAP: kartu berada tepat di atas amplop.
-  //   top = 0 - tinggi_kartu → kartu persis di atas body amplop.
-  //   Kita pakai translateY: mulai di -100% (kartu penuh di atas), slide ke +45%
-  // Stage card dipasang dengan bottom:'36%' sebagai anchor di atas bukaan amplop.
-  // ABOVE_FLAP : translateY(-100%) → kartu penuh di atas envelope body, tidak overlap
-  // ENTERING   : translateY(50%)   → kartu turun 50% tingginya sendiri ke dalam body
-  //              separuh kartu overlap dengan body → body (z:10) menutupi separuh bawah
-  const stageCardTransform = is(PHASE.ENTERING)
-    ? 'translateY(50%) translateZ(0)'
-    : 'translateY(-100%) translateZ(0)'
-
-  const stageCardTransition = is(PHASE.ENTERING)
-    ? 'transform 0.75s cubic-bezier(0.4,0,0.6,1)'
-    : 'none'
-
-  // ── Inside card (di dalam overflow:hidden) ──
-  // Inside card HANYA tampil saat stage card sudah tidak ada.
-  // Selama ABOVE_FLAP & ENTERING: stage card yang handle visual → inside card hidden.
-  // ENTERED: stage card hilang → inside card snap muncul di peek 5%.
-  const cardInsideTop = isAny(
-    PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
-    PHASE.ENTERED, PHASE.CLOSING_FLAP
-  ) ? '5%' : '110%'
+  const cardInsideTop = (() => {
+    if (isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
+              PHASE.ENTERING, PHASE.ENTERED, PHASE.CLOSING_FLAP)) return '5%'
+    if (is(PHASE.ABOVE_FLAP)) return '-100%'
+    return '110%'  // IDLE, OPENING: tersembunyi di bawah
+  })()
 
   const cardInsideOpacity = isAny(
     PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
-    PHASE.ENTERED, PHASE.CLOSING_FLAP
+    PHASE.ENTERING, PHASE.ENTERED, PHASE.CLOSING_FLAP
   ) ? 1 : 0
 
-  const cardInsideVisibility = isAny(
-    PHASE.IDLE, PHASE.OPENING, PHASE.ABOVE_FLAP, PHASE.ENTERING
-  ) ? 'hidden' : 'visible'
+  const cardInsideVisibility = isAny(PHASE.IDLE, PHASE.OPENING) ? 'hidden' : 'visible'
 
-  const cardInsideTransition = 'none'  // selalu snap — stage card yang handle animasi
+  const cardInsideContainerZ = is(PHASE.ENTERING) ? 16 : 3
+
+  const cardInsideTransition = (() => {
+    if (is(PHASE.ENTERING)) return 'top 0.75s cubic-bezier(0.4,0,0.55,1)'
+    return 'none'
+  })()
 
   const cardClickable = is(PHASE.PEEKING)
 
@@ -264,31 +256,6 @@ const Envelope = ({
       ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
-        {/* ── STAGE CARD ──
-         * z:9 → di BAWAH envelope body (z:10).
-         *
-         * Anchor: top:0 → sejajar dengan batas atas envelope body.
-         * ABOVE_FLAP : translateY(-100%) → kartu penuh di atas amplop (tidak overlap body)
-         * ENTERING   : translateY(50%)  → kartu turun, separuh masuk ke dalam body.
-         *   Karena z:9 < z:10, bagian kartu yang overlap dengan body TERTUTUP body secara natural.
-         *   Tidak perlu clip apapun — ini adalah CSS stacking context bekerja sebagaimana mestinya.
-         */}
-        {showStageCard && (
-          <div style={{
-            position:   'absolute',
-            left: '5%', right: '5%',
-            top:        0,            // sejajar batas atas envelope body
-            zIndex:     9,            // di BAWAH envelope body (z:10)
-            transform:  stageCardTransform,
-            transition: stageCardTransition,
-            willChange: 'transform',
-            filter:     'drop-shadow(0 -8px 24px rgba(0,0,0,0.5))',
-            pointerEvents: 'none',
-          }}>
-            <MemoCard t={t} />
-          </div>
-        )}
-
         {/* ── ENVELOPE BODY ── z:10 */}
         <div
           className={`relative select-none ${is(PHASE.IDLE) ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
@@ -302,13 +269,15 @@ const Envelope = ({
           }}
         >
           {/* ── INSIDE CARD (overflow:hidden) ──
-           * Aktif saat PEEKING, ENTERED, CLOSING_FLAP.
-           * Snap langsung ke top:5% — stage card yang handle transisi visual.
+           * Animasi masuk sepenuhnya via inside card + overflow:hidden.
+           * ABOVE_FLAP  : top:-100% (di atas, tersembunyi oleh overflow:hidden)
+           * ENTERING    : top:5% + transition → slide masuk, z:16 agar terlihat di atas flap
+           * ENTERED+    : top:5% diam, z:3 agar flap & pentagon bisa menutup
            */}
           <div style={{
             position:      'absolute', inset: 0,
             overflow:      'hidden',
-            zIndex:        3,
+            zIndex:        cardInsideContainerZ,
             pointerEvents: 'none',
             borderRadius:  'inherit',
           }}>
