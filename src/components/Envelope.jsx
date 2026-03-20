@@ -115,7 +115,7 @@ const Envelope = ({
       case PHASE.PEEKING:
       case PHASE.FLYING:
       case PHASE.FULLSCREEN: return '5%'
-      default:               return '110%'
+      default:               return '10%'
     }
   })()
   const cardInsideOpacity   = is(PHASE.PEEKING) ? 1 : 0
