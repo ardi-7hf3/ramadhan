@@ -1,6 +1,5 @@
 import {
   CrescentMoon,
-  MosqueSVG,
   GeomDivider,
   CornerOrnament,
   LanternSVG,
@@ -60,10 +59,9 @@ const WishItem = ({ text }) => (
 )
 
 // ── Main card ──
-const GreetingCard = ({ t, visible }) => (
+const GreetingCard = ({ t }) => (
   <div
-    className={`relative overflow-hidden rounded-2xl font-poppins paper-lines
-      ${visible ? 'reveal-stagger' : ''}`}
+    className="relative overflow-hidden rounded-2xl font-poppins paper-lines"
     style={{
       background: 'linear-gradient(155deg, #FFFCF0 0%, #FDF5DA 42%, #F5E8BC 100%)',
       boxShadow:
@@ -110,11 +108,25 @@ const GreetingCard = ({ t, visible }) => (
           }
         />
 
-        {/* Mosque center — scales down on mobile */}
-        <div className="flex-1 flex justify-center">
-          <div className="moon-glow">
-            <MosqueSVG size={Math.min(110, window?.innerWidth ? window.innerWidth * 0.22 : 90)} />
+        {/* Smantas center logo — slightly bigger */}
+        <div className="flex flex-col items-center gap-1">
+          <div
+            className="logo-circle rounded-full overflow-hidden flex items-center justify-center"
+            style={{
+              width:      'clamp(52px, 14vw, 72px)',
+              height:     'clamp(52px, 14vw, 72px)',
+              border:     '2px solid rgba(201,148,26,0.6)',
+              background: 'rgba(255,255,255,0.85)',
+              boxShadow:  '0 4px 18px rgba(0,0,0,0.15)',
+              flexShrink: 0,
+            }}
+          >
+            <img src="/smantas.png" alt="SMAN 13" className="w-full h-full object-cover" />
           </div>
+          <span className="font-poppins font-bold tracking-widest uppercase"
+            style={{ fontSize: 'clamp(0.45rem, 1.5vw, 0.58rem)', color: '#C9941A' }}>
+            SMAN 13
+          </span>
         </div>
 
         <LogoCircle src="/osis.png" alt="OSIS"
@@ -141,11 +153,6 @@ const GreetingCard = ({ t, visible }) => (
         }}>
         {t.arabic}
       </div>
-      <p className="text-center font-poppins italic mb-2"
-        style={{ fontSize: 'clamp(0.58rem, 1.8vw, 0.68rem)', color: 'rgba(46,32,10,0.55)' }}>
-        {t.arabicSub}
-      </p>
-
       {/* ── 4. Divider ── */}
       <GeomDivider opacity={0.6} />
 
@@ -188,16 +195,6 @@ const GreetingCard = ({ t, visible }) => (
         >
           مِنَ الْعَائِدِيْنَ وَالْفَائِزِيْنَ
         </div>
-        <p
-          className="font-poppins italic mt-0.5"
-          style={{
-            fontSize:      'clamp(0.55rem, 1.6vw, 0.65rem)',
-            color:         'rgba(46,32,10,0.45)',
-            letterSpacing: '0.5px',
-          }}
-        >
-          {t.arabicGreetingSub}
-        </p>
       </div>
 
       {/* ── 8. Sub pill ── */}
@@ -267,9 +264,9 @@ const GreetingCard = ({ t, visible }) => (
           style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)', color: '#C9941A' }}>
           MPK &amp; OSIS
         </p>
-        <p className="font-poppins font-normal italic mt-0.5"
-          style={{ fontSize: 'clamp(0.6rem, 1.8vw, 0.7rem)', color: '#4A3520', opacity: 0.72 }}>
-          {t.senderSub}
+        <p className="font-poppins font-bold uppercase mt-0.5"
+          style={{ fontSize: 'clamp(0.6rem, 1.8vw, 0.72rem)', color: '#0F7A6B', letterSpacing: '0.5px' }}>
+          SMA Negeri 13 Pontianak
         </p>
       </div>
 
