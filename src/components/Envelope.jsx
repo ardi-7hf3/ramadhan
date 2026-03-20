@@ -99,8 +99,8 @@ const Envelope = ({
     switch (phase) {
       case PHASE.PEEKING:
       case PHASE.FLYING:
-      case PHASE.FULLSCREEN:
-      case PHASE.ABOVE_FLAP: return '5%'
+      case PHASE.FULLSCREEN: return '5%'
+      case PHASE.ABOVE_FLAP: return '-2%'   // kartu muncul sejajar mulut amplop
       case PHASE.ENTERING:   return '110%'
       default:               return '110%'
     }
@@ -288,27 +288,24 @@ const Envelope = ({
             background:'linear-gradient(90deg,rgba(0,0,0,0.09) 0%,transparent 16%,transparent 84%,rgba(0,0,0,0.09) 100%)',
           }}/>
 
-          {/* Left fold */}
-          <div className="absolute left-0 pointer-events-none" style={{
-            zIndex:4, width:'50%', height:'calc(46% + 2px)', bottom: '-1px',
-            background:'linear-gradient(138deg,#C8AA60 0%,#9A7830 100%)',
-            clipPath:'polygon(0 100%,0 0,100% 100%)',
+          {/* Bottom fold — single pentagon covering everything the flap doesn't.
+           * The flap triangle is: (0,0)→(50%,54%)→(100%,0).
+           * This pentagon covers the exact complement:
+           *   (0,0) → (50%,54%) → (100%,0) → (100%,100%) → (0,100%)
+           * = left side + right side + full bottom with NO gap at center. */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            zIndex:4,
+            background:'linear-gradient(160deg,#B8902A 0%,#C8AA60 30%,#B0882A 50%,#C8AA60 70%,#B8902A 100%)',
+            clipPath:'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
 
-          {/* Right fold */}
-          <div className="absolute right-0 pointer-events-none" style={{
-            zIndex:4, width:'50%', height:'calc(46% + 2px)', bottom: '-1px',
-            background:'linear-gradient(222deg,#C8AA60 0%,#9A7830 100%)',
-            clipPath:'polygon(100% 100%,100% 0,0 100%)',
-          }}/>
-
-          {/* TOP FLAP */}
+          {/* TOP FLAP — full-size div, clipped to downward triangle.
+           * clipPath tip at (50%, 54%) matches fold pentagon exactly → zero gap. */}
           <div style={{
-            position:'absolute', top:0, left:0, right:0,
+            position:'absolute', inset:0,
             zIndex:          5,
-            height:          '54%',
-            background:      'linear-gradient(178deg,#DEC07A 0%,#B28C38 100%)',
-            clipPath:        'polygon(0 0,50% 100%,100% 0)',
+            background:      'linear-gradient(178deg,#DEC07A 0%,#B28C38 60%,#9A7830 100%)',
+            clipPath:        'polygon(0 0, 50% 54%, 100% 0)',
             boxShadow:       '0 5px 14px rgba(0,0,0,0.28)',
             transformOrigin: 'top center',
             transformStyle:  'preserve-3d',
@@ -320,7 +317,7 @@ const Envelope = ({
               : 'transform 0.65s cubic-bezier(0.4,0,0.2,1)',
             willChange:'transform', pointerEvents:'none',
           }}>
-            <div style={{ position:'absolute', bottom:0, left:'25%', right:'25%', height:'1px', background:'rgba(0,0,0,0.12)' }}/>
+            <div style={{ position:'absolute', top:'46%', left:'18%', right:'18%', height:'1px', background:'rgba(0,0,0,0.10)' }}/>
             <div style={{ position:'absolute', top:'8px', left:'33%', right:'33%', height:'1px', background:'rgba(255,255,255,0.18)' }}/>
           </div>
 
