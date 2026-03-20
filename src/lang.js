@@ -28,6 +28,7 @@ export const LANG = {
     btnShare:   'Bagikan Ucapan',
     btnSave:    'Simpan Kartu',
     toast:      'Link berhasil disalin!',
+    tapToOpen:  '↑ Klik kartu untuk membuka',
     footer:     'Kartu Ucapan Digital',
   },
   en: {
@@ -55,6 +56,7 @@ export const LANG = {
     btnShare:   'Share Greeting',
     btnSave:    'Save Card',
     toast:      'Link copied to clipboard!',
+    tapToOpen:  '↑ Tap card to open',
     footer:     'Digital Greeting Card',
   },
 }

@@ -74,69 +74,17 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   ENVELOPE — FLAP 3D ROTATION
+   ENVELOPE FLAP & SEAL — handled inline via React
 ═══════════════════════════════════════════ */
-.env-flap {
-  transform-style: preserve-3d;
-  transform-origin: top center;
-  transition: transform 0.78s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.flap-open {
-  transform: rotateX(-185deg);
-}
 
 /* ═══════════════════════════════════════════
-   WAX SEAL DISSOLVE
+   ENVELOPE FLAP — handled inline via React state
+   (no CSS class needed, transform applied directly)
 ═══════════════════════════════════════════ */
-.seal-wrap {
-  transition: transform 0.5s ease, opacity 0.4s ease;
-  transform-origin: center;
-}
-.seal-gone {
-  transform: scale(0) rotate(30deg) !important;
-  opacity: 0 !important;
-}
 
 /* ═══════════════════════════════════════════
-   CARD EMERGING FROM ENVELOPE
-   
-   Technique:
-   1. #card-clip-window  → overflow:hidden, sits over envelope body
-   2. #card-inner        → starts at translateY(100%) = hidden inside
-   3. .card-rising       → animates to translateY(-105%) = above envelope
-   4. After animation:   → overflow released, card fully interactive
+   ENVELOPE INSIDE REVEAL — handled inline
 ═══════════════════════════════════════════ */
-
-/* The card itself — starts hidden below clip window top */
-.card-inner {
-  transition:
-    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity   0.4s ease;
-  opacity:    0;
-  will-change: transform, opacity;
-}
-
-/* Phase 1 — card rises out of envelope pocket */
-.card-rising {
-  transform: translateX(-50%) translateY(-105%) !important;
-  opacity:   1 !important;
-}
-
-/* Phase 2 — card fully above, settle with subtle bounce */
-.card-risen {
-  transform: translateX(-50%) translateY(-105%) !important;
-  opacity:   1 !important;
-}
-
-/* ═══════════════════════════════════════════
-   ENVELOPE INSIDE REVEAL
-═══════════════════════════════════════════ */
-.env-inside {
-  transition: opacity 0.4s ease 0.55s;
-}
-.inside-show {
-  opacity: 1 !important;
-}
 
 /* ═══════════════════════════════════════════
    PAPER TEXTURE
