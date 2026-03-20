@@ -1,7 +1,3 @@
-// Language data for bilingual support
-// Indonesia: Minal Aaidiin Wal Faaiziin — Mohon Maaf Lahir dan Batin
-// English:   Happy Eid Mubarak
-
 export const LANG = {
   id: {
     langLabel:  'English',
@@ -17,6 +13,8 @@ export const LANG = {
     body:       'Semoga di hari yang penuh kemenangan ini, Allah SWT menerima seluruh amal ibadah kita dan mengampuni segala khilaf. Kita kembali kepada fitrah yang suci.',
     dua:        'Taqabbalallahu Minna Wa Minkum',
     year:       '1 Syawal 1447 H',
+    wishes: [
+      'Maaf Lahir & Batin',
       'Berkah & Barokah',
       'Kembali Suci',
       'Damai Sejahtera',
@@ -45,6 +43,8 @@ export const LANG = {
     body:       'Wishing you and your beloved family a joyful Eid celebration, filled with peace, love, gratitude, and the mercy of Allah SWT.',
     dua:        'Taqabbalallahu Minna Wa Minkum',
     year:       '1 Syawal 1447 H',
+    wishes: [
+      'Forgiveness & Grace',
       'Blessings Abound',
       'Pure & Renewed',
       'Peace & Happiness',
