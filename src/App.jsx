@@ -46,7 +46,7 @@ const App = () => {
     <div className="min-h-screen font-poppins" style={{ background: '#070E1C' }}>
       <Starfield />
       <Loader done={loaderDone} />
-      <LangToggle label={t.langLabel} onClick={toggleLang} />
+      <LangToggle label={t.langLabel} onClick={toggleLang} hidden={cardViewing} />
 
       <main
         className="relative z-10 flex flex-col items-center justify-center px-3 sm:px-6"
