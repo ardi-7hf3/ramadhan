@@ -98,22 +98,34 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   CARD SLIDE-UP FROM ENVELOPE
+   CARD EMERGING FROM ENVELOPE
+   
+   Technique:
+   1. #card-clip-window  → overflow:hidden, sits over envelope body
+   2. #card-inner        → starts at translateY(100%) = hidden inside
+   3. .card-rising       → animates to translateY(-105%) = above envelope
+   4. After animation:   → overflow released, card fully interactive
 ═══════════════════════════════════════════ */
-.card-peek {
+
+/* The card itself — starts hidden below clip window top */
+.card-inner {
   transition:
-    bottom   1s    cubic-bezier(0.22, 1, 0.36, 1),
-    opacity  0.55s ease 0.4s;
-  /* overflow visible so card shadow/content isn't clipped */
-  overflow:     visible;
-  /* start hidden beneath envelope lip */
-  will-change:  bottom, opacity;
+    transform 1.1s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity   0.4s ease;
+  opacity:    0;
+  will-change: transform, opacity;
 }
-.card-visible {
-  bottom:        calc(100% + 24px) !important;
-  opacity:       1 !important;
-  /* pointer-events set imperatively in JS, but ensure it's enabled */
-  pointer-events: auto !important;
+
+/* Phase 1 — card rises out of envelope pocket */
+.card-rising {
+  transform: translateX(-50%) translateY(-105%) !important;
+  opacity:   1 !important;
+}
+
+/* Phase 2 — card fully above, settle with subtle bounce */
+.card-risen {
+  transform: translateX(-50%) translateY(-105%) !important;
+  opacity:   1 !important;
 }
 
 /* ═══════════════════════════════════════════
