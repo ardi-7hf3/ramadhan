@@ -69,13 +69,13 @@ const Envelope = ({
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // ── Tutup kartu → ghost masuk amplop → flap tutup → IDLE ──
+  // ── Tutup kartu → kartu masuk amplop via inside clip → flap tutup → IDLE ──
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     const T0 = 350   // overlay fade out
-    const T1 = 250   // ghost hover di atas flap
-    const T2 = 620   // ghost masuk amplop
-    const T3 = 680   // flap menutup
+    const T1 = 180   // jeda sebentar kartu peek muncul
+    const T2 = 700   // kartu meluncur masuk ke dalam amplop
+    const T3 = 650   // flap menutup
     setPhase(PHASE.RETURNING)
     go(PHASE.ABOVE_FLAP,   T0)
     go(PHASE.ENTERING,     T0 + T1)
@@ -92,34 +92,32 @@ const Envelope = ({
   const insideShow = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
 
   // ── Kartu di dalam amplop (overflow:hidden) ──
-  // Hanya terlihat saat PEEKING (naik ke 5%) dan FLYING/FULLSCREEN (tetap, opacity 0)
+  // ABOVE_FLAP : langsung muncul di posisi peek (5%) tanpa transisi
+  // ENTERING   : meluncur turun ke 110% (masuk ke dalam amplop)
+  // PEEKING    : naik ke 5% dengan spring
   const cardInsideTop = (() => {
     switch (phase) {
-      case PHASE.PEEKING:    return '5%'
+      case PHASE.PEEKING:
       case PHASE.FLYING:
-      case PHASE.FULLSCREEN: return '5%'
+      case PHASE.FULLSCREEN:
+      case PHASE.ABOVE_FLAP: return '5%'
+      case PHASE.ENTERING:   return '110%'
       default:               return '110%'
     }
   })()
-  const cardInsideOpacity   = isAny(PHASE.PEEKING) ? 1 : 0
-  const cardInsideTransition = isAny(PHASE.IDLE, PHASE.OPENING)
-    ? 'top 0s, opacity 0s'
-    : isAny(PHASE.PEEKING)
-      ? 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
-      : 'top 0s, opacity 0.2s ease'
+  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.ABOVE_FLAP, PHASE.ENTERING) ? 1 : 0
+  const cardInsideTransition = (() => {
+    if (isAny(PHASE.IDLE, PHASE.OPENING, PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING))
+      return 'top 0s, opacity 0s'
+    if (is(PHASE.ABOVE_FLAP))
+      return 'top 0s, opacity 0.3s ease'            // langsung snap ke posisi peek, fade in
+    if (is(PHASE.ENTERING))
+      return 'top 0.72s cubic-bezier(0.55,0,0.8,1), opacity 0.35s ease 0.3s'  // meluncur masuk
+    if (is(PHASE.PEEKING))
+      return 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
+    return 'top 0s, opacity 0.2s ease'
+  })()
   const cardClickable = is(PHASE.PEEKING)
-
-  // ── Ghost card di luar overflow:hidden — hover di atas flap lalu masuk ──
-  // Diposisikan dengan bottom:100% (bawah ghost = atas amplop)
-  // z:9 → saat ghost mulai memasuki area amplop, ditutup oleh envelope body (z:10) ✓
-  const showGhost = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING)
-  const ghostTransform = is(PHASE.ENTERING)
-    ? 'translateY(62%) translateZ(0)'
-    : 'translateY(0) translateZ(0)'
-  const ghostOpacity = is(PHASE.ENTERING) ? 0 : 1
-  const ghostTransition = is(PHASE.ENTERING)
-    ? 'transform 0.62s cubic-bezier(0.55,0,0.75,1), opacity 0.5s ease 0.12s'
-    : 'opacity 0.22s ease'
 
   // ── Overlay ──
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
@@ -128,7 +126,7 @@ const Envelope = ({
     ? 'scale(1) translateY(0) translateZ(0)'
     : is(PHASE.FLYING)
       ? 'scale(0.7) translateY(38vh) translateZ(0)'
-      : 'scale(0.55) translateY(28vh) translateZ(0)'  // RETURNING: mengecil di tengah
+      : 'scale(0.55) translateY(28vh) translateZ(0)'
   const overlayCardOpacity   = overlayFull ? 1 : 0
   const overlayCardTransition = is(PHASE.RETURNING)
     ? 'transform 0.32s cubic-bezier(0.4,0,1,1), opacity 0.28s ease'
@@ -229,29 +227,6 @@ const Envelope = ({
           ENVELOPE SCENE
       ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
-
-        {/* ── GHOST CARD ──
-         * z:15 → di depan semua elemen amplop termasuk flap.
-         * bottom:100% → bawah ghost sejajar atas bukaan amplop.
-         * Saat ENTERING, ghost turun + fade; amplop body (z:10) secara
-         * visual menjadi mulut yang "menelan" kartu dari bawah.
-         */}
-        {showGhost && (
-          <div style={{
-            position:   'absolute',
-            left: '5%', right: '5%',
-            bottom:     '100%',
-            zIndex:     15,
-            transform:  ghostTransform,
-            opacity:    ghostOpacity,
-            transition: ghostTransition,
-            willChange: 'transform, opacity',
-            filter:     'drop-shadow(0 -6px 28px rgba(0,0,0,0.55))',
-            pointerEvents: 'none',
-          }}>
-            <MemoCard t={t} />
-          </div>
-        )}
 
         {/* ── ENVELOPE BODY ── */}
         <div
