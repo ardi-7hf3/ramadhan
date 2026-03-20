@@ -281,14 +281,18 @@ const Envelope = ({
            * Saat MENUTUP (animasi masuk):
            *   ABOVE_FLAP  → top:-110% (snap, tersembunyi di atas batas amplop)
            *   ENTERING    → top:5%   (slide turun 700ms, kelihatan "masuk" dari bukaan)
-           *   CLOSING_FLAP→ top:5%   (diam di posisi peek, flap menutup dari atas)
+           *                  z-index container dinaikkan ke 16 (di atas flap z:15)
+           *                  agar kartu terlihat saat meluncur masuk
+           *   CLOSING_FLAP→ top:5%   (z turun ke 3, flap menutup dari atas)
            *
            * Saat BUKA: langsung top:5% tanpa transisi.
            */}
           <div style={{
             position:      'absolute', inset: 0,
             overflow:      'hidden',
-            zIndex:        3,
+            // z:16 saat ENTERING → di atas flap (z:15), kartu terlihat saat masuk
+            // z:3  saat lainnya  → flap bisa menutup di atasnya
+            zIndex:        is(PHASE.ENTERING) ? 16 : 3,
             pointerEvents: 'none',
             borderRadius:  'inherit',
           }}>
