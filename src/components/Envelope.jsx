@@ -74,7 +74,7 @@ const Envelope = ({ t, opened, onOpen }) => {
     <div
       className="relative"
       style={{
-        width:       'clamp(280px, 76vw, 448px)',
+        width:       'min(448px, 92vw)',
         perspective: '1200px',
       }}
     >
