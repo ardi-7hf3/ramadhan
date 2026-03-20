@@ -3,31 +3,15 @@ import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
 /**
- * PEEK YANG BENAR
- * ───────────────────────────────────────────────────
+ * FASE CLOSE (baru):
  *
- *  ┌─────────────────────┐
- *  │  TOP KARTU (logo,   │  ← nongol sedikit di atas amplop (terlihat)
- *  │  assalamualaikum)   │
- *  ╠═════════════════════╣  ← mulut amplop (garis clip)
- *  │  sisa kartu ...     │  ← tersembunyi di dalam amplop
- *  └─────────────────────┘
- *
- * TEKNIK BARU — dua wrapper terpisah:
- *
- *  1. CARD OUTER: absolute, width = amplop, bottom = 0,
- *     diperpanjang ke atas (height = 200%).
- *     TIDAK ada overflow hidden → kartu bebas bergerak.
- *
- *  2. MASK DIV: absolute, inset = 0 (sama persis amplop),
- *     background = warna amplop, zIndex lebih tinggi dari
- *     kartu tapi lebih rendah dari flap/seal.
- *     → menutupi bagian kartu yang ada di DALAM amplop,
- *       tapi tidak menutupi bagian yang sudah naik ke atas.
- *
- * Dengan ini, kartu bergerak bebas dengan translateY,
- * bagian yang di dalam amplop tertutup mask,
- * bagian yang di atas amplop terlihat. ✓
+ *  FULLSCREEN
+ *    ↓  klik close
+ *  RETURNING   — overlay card mengecil dan terbang turun ke posisi amplop (~550ms)
+ *    ↓
+ *  ENTERING    — kartu muncul di atas bukaan amplop, lalu meluncur masuk ke dalam (~650ms)
+ *    ↓
+ *  PEEKING     — kartu naik kembali ke posisi peek normal
  */
 
 const PHASE = {
@@ -36,7 +20,8 @@ const PHASE = {
   PEEKING:    2,
   FLYING:     3,
   FULLSCREEN: 4,
-  RETURNING:  5,
+  RETURNING:  5,   // overlay terbang turun ke amplop
+  ENTERING:   6,   // kartu masuk ke dalam amplop dari atas
 }
 
 const MemoCard = memo(GreetingCard)
@@ -64,22 +49,29 @@ const Envelope = ({
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
+  // Buka amplop
   useEffect(() => {
     if (!envelopeOpen || phaseRef.current !== PHASE.IDLE) return
     setPhase(PHASE.OPENING)
     go(PHASE.PEEKING, 860)
   }, [envelopeOpen, go])
 
+  // Buka kartu fullscreen
   useEffect(() => {
     if (!cardViewing || phaseRef.current !== PHASE.PEEKING) return
     setPhase(PHASE.FLYING)
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
+  // Tutup kartu → terbang ke amplop → masuk → peek
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
+    // 1. Overlay terbang turun ke amplop
     setPhase(PHASE.RETURNING)
-    go(PHASE.PEEKING, 720)
+    // 2. Kartu masuk dari atas ke dalam amplop
+    go(PHASE.ENTERING, 550)
+    // 3. Kartu kembali ke posisi peek
+    go(PHASE.PEEKING, 550 + 700)
   }, [cardViewing, go])
 
   const is    = p       => phase === p
@@ -89,26 +81,60 @@ const Envelope = ({
   const sealGone   = phase >= PHASE.OPENING
   const insideShow = phase >= PHASE.OPENING
 
-  // ── Posisi kartu DI DALAM amplop (clip oleh overflow:hidden) ──
-  // Animasi via `top`: dari bawah clip container (tersembunyi) ke atas yang terlihat.
-  // Kartu tidak pernah keluar dari batas amplop — ditampilkan melalui bukaan flap.
+  // ── Posisi kartu di dalam amplop ──
+  // RETURNING  : kartu ditempatkan di -10% (tepat di atas bukaan), tanpa transisi → siap masuk
+  // ENTERING   : kartu meluncur dari -10% ke 110% (masuk ke dalam amplop)
+  // PEEKING    : kartu naik kembali ke 5% (posisi peek normal)
   const cardInsideTop = (() => {
     switch (phase) {
       case PHASE.IDLE:
-      case PHASE.OPENING:    return '110%'   // di bawah area clip → tersembunyi
-      case PHASE.PEEKING:    return '5%'     // top kartu muncul di area dalam amplop
+      case PHASE.OPENING:    return '110%'
+      case PHASE.PEEKING:    return '5%'
       case PHASE.FLYING:
-      case PHASE.FULLSCREEN: return '5%'     // tetap, tapi opacity:0 (overlay ambil alih)
-      case PHASE.RETURNING:  return '5%'     // kembali peek
+      case PHASE.FULLSCREEN: return '5%'
+      case PHASE.RETURNING:  return '-10%'   // posisi awal masuk — di atas bukaan
+      case PHASE.ENTERING:   return '110%'   // meluncur masuk ke dalam
       default:               return '110%'
     }
   })()
 
-  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.RETURNING) ? 1 : 0
+  const cardInsideTransition = (() => {
+    if (isAny(PHASE.IDLE, PHASE.OPENING, PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)) {
+      return 'top 0s, opacity 0.3s ease'        // RETURNING: langsung pindah ke -10% (no anim)
+    }
+    if (is(PHASE.ENTERING)) {
+      return 'top 0.65s cubic-bezier(0.4,0,0.8,1), opacity 0.25s ease'   // meluncur masuk
+    }
+    // PEEKING: naik dengan spring
+    return 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
+  })()
+
+  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.ENTERING) ? 1 : 0
   const cardClickable     = is(PHASE.PEEKING)
 
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
   const overlayFull    = is(PHASE.FULLSCREEN)
+
+  // Overlay card bergerak: saat RETURNING, mengecil dan terbang ke bawah (arah amplop)
+  const overlayCardTransform = (() => {
+    if (overlayFull)           return 'scale(1) translateY(0) translateZ(0)'
+    if (is(PHASE.RETURNING))   return 'scale(0.32) translateY(60vh) translateZ(0)'
+    if (is(PHASE.FLYING))      return 'scale(0.7) translateY(38vh) translateZ(0)'
+    return 'scale(0.7) translateY(38vh) translateZ(0)'
+  })()
+
+  const overlayCardOpacity = (() => {
+    if (overlayFull)          return 1
+    if (is(PHASE.RETURNING))  return 0    // fade out sambil terbang
+    return 0
+  })()
+
+  const overlayCardTransition = (() => {
+    if (is(PHASE.RETURNING)) {
+      return 'transform 0.52s cubic-bezier(0.4,0,0.6,1), opacity 0.35s ease 0.15s'
+    }
+    return 'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease'
+  })()
 
   return (
     <>
@@ -131,26 +157,22 @@ const Envelope = ({
           maxHeight:    '88dvh',
           overflowY:    overlayFull ? 'auto' : 'hidden',
           borderRadius: '16px',
-          transform:    overlayFull
-            ? 'scale(1) translateY(0) translateZ(0)'
-            : is(PHASE.RETURNING)
-              ? 'scale(0.65) translateY(44vh) translateZ(0)'
-              : 'scale(0.7) translateY(38vh) translateZ(0)',
-          opacity:      overlayFull ? 1 : 0,
-          transition:   'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease',
+          transform:    overlayCardTransform,
+          opacity:      overlayCardOpacity,
+          transition:   overlayCardTransition,
           willChange:   'transform, opacity',
           pointerEvents: overlayFull ? 'auto' : 'none',
         }}>
-          <MemoCard t={t} visible={overlayFull} />
+          <MemoCard t={t} />
         </div>
 
-        {/* ── Close — KIRI atas, tidak bentrok lang toggle (kanan) ── */}
+        {/* ── Close — KIRI atas ── */}
         <button
           onClick={onCloseCard}
           style={{
             position:       'fixed',
             top:            '18px',
-            left:           '18px',   /* ← kiri, bukan kanan */
+            left:           '18px',
             width:          '44px',
             height:         '44px',
             borderRadius:   '50%',
@@ -226,15 +248,10 @@ const Envelope = ({
             background:   'linear-gradient(162deg,#DEC07A 0%,#C4A15A 48%,#9A7830 100%)',
             boxShadow:    '0 20px 56px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.4)',
             borderRadius: '8px 8px 14px 14px',
-            zIndex:       10,   /* z10 > kartu z8 → envelope menutupi bagian kartu yg di dalam ✓ */
+            zIndex:       10,
           }}
         >
-          {/* ── KARTU DI DALAM AMPLOP ──
-           * Clip container (overflow:hidden) = kartu tidak pernah keluar dari batas amplop.
-           * Kartu dianimasikan via `top`: dari bawah (tersembunyi) naik ke area bukaan flap.
-           * z3 → di atas inner pocket/pattern, di bawah side-shadows (z3 DOM-order),
-           *        folds (z4), dan flap (z5) → flap menutup kartu saat tertutup ✓.
-           */}
+          {/* ── KARTU DI DALAM AMPLOP ── */}
           <div style={{
             position:      'absolute',
             inset:         0,
@@ -253,19 +270,12 @@ const Envelope = ({
                 pointerEvents: cardClickable ? 'auto' : 'none',
                 cursor:        cardClickable ? 'pointer' : 'default',
                 opacity:       cardInsideOpacity,
-                transition: [
-                  `top ${
-                    isAny(PHASE.IDLE, PHASE.OPENING) ? '0s'
-                    : isAny(PHASE.PEEKING, PHASE.RETURNING) ? '0.85s cubic-bezier(0.22,1,0.36,1)'
-                    : '0.48s cubic-bezier(0.4,0,0.2,1)'
-                  }`,
-                  `opacity ${isAny(PHASE.IDLE, PHASE.OPENING) ? '0.3s ease' : '0.4s ease'}`,
-                ].join(', '),
-                willChange: 'top, opacity',
-                filter:     'drop-shadow(0 4px 18px rgba(0,0,0,0.45))',
+                transition:    cardInsideTransition,
+                willChange:    'top, opacity',
+                filter:        'drop-shadow(0 4px 18px rgba(0,0,0,0.45))',
               }}
             >
-              <MemoCard t={t} visible={is(PHASE.PEEKING)} />
+              <MemoCard t={t} />
             </div>
           </div>
 
@@ -355,7 +365,7 @@ const Envelope = ({
           </div>
         </div>{/* /envelope body */}
 
-        {/* ── HINT teks di atas amplop ── */}
+        {/* ── HINT teks ── */}
         <div style={{
           position:      'absolute',
           top:           '-28px',
