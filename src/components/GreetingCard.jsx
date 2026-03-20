@@ -1,60 +1,37 @@
 import {
   CrescentMoon,
+  MosqueSVG,
   GeomDivider,
   CornerOrnament,
   LanternSVG,
   StarDot,
 } from './SvgIcons.jsx'
 
-// ── Logo circle ──
-const LogoCircle = ({ src, alt, fallbackIcon }) => (
-  <div className="flex flex-col items-center gap-1">
-    <div
-      className="logo-circle rounded-full overflow-hidden flex items-center justify-center"
-      style={{
-        width:      'clamp(40px, 11vw, 56px)',
-        height:     'clamp(40px, 11vw, 56px)',
-        border:     '1.5px solid rgba(201,148,26,0.45)',
-        background: 'rgba(255,255,255,0.72)',
-        boxShadow:  '0 2px 14px rgba(0,0,0,0.12)',
-        flexShrink: 0,
-      }}
-    >
-      <img
-        src={src}
-        alt={alt}
-        className="w-full h-full object-cover"
-        onError={e => {
-          e.target.style.display = 'none'
-          e.target.nextSibling.style.display = 'flex'
-        }}
-      />
-      <div className="hidden flex-col items-center justify-center w-full h-full" style={{ display: 'none' }}>
-        {fallbackIcon}
-      </div>
-    </div>
-    <span className="font-poppins font-bold tracking-widest uppercase"
-      style={{ fontSize: 'clamp(0.45rem, 1.5vw, 0.58rem)', color: '#C9941A' }}>
-      {alt}
-    </span>
-  </div>
-)
-
-// ── Wish item ──
-const WishItem = ({ text }) => (
+// ── Logo circle (tanpa label teks) ──
+const LogoCircle = ({ src, alt, fallbackIcon, size = 'sm' }) => (
   <div
-    className="wish-card flex items-center gap-2 rounded-lg"
+    className="logo-circle rounded-full overflow-hidden flex items-center justify-center"
     style={{
-      padding:    'clamp(6px,2vw,10px) clamp(8px,2.5vw,12px)',
-      background: 'rgba(201,148,26,0.055)',
-      border:     '1px solid rgba(201,148,26,0.14)',
+      width:      size === 'lg' ? 'clamp(52px, 14vw, 72px)' : 'clamp(40px, 11vw, 56px)',
+      height:     size === 'lg' ? 'clamp(52px, 14vw, 72px)' : 'clamp(40px, 11vw, 56px)',
+      border:     size === 'lg' ? '2px solid rgba(201,148,26,0.6)' : '1.5px solid rgba(201,148,26,0.45)',
+      background: 'rgba(255,255,255,0.80)',
+      boxShadow:  '0 2px 14px rgba(0,0,0,0.12)',
+      flexShrink: 0,
     }}
   >
-    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#C9941A' }} />
-    <span className="font-poppins font-semibold leading-tight"
-      style={{ fontSize: 'clamp(0.65rem, 2.2vw, 0.78rem)', color: '#2E200A' }}>
-      {text}
-    </span>
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={e => {
+        e.target.style.display = 'none'
+        e.target.nextSibling.style.display = 'flex'
+      }}
+    />
+    <div className="hidden flex-col items-center justify-center w-full h-full" style={{ display: 'none' }}>
+      {fallbackIcon}
+    </div>
   </div>
 )
 
@@ -81,25 +58,17 @@ const GreetingCard = ({ t }) => (
     </div>
 
     {/* Corner ornaments */}
-    <div className="absolute top-4 left-4">
-      <CornerOrnament />
-    </div>
-    <div className="absolute top-4 right-4">
-      <CornerOrnament flipX />
-    </div>
-    <div className="absolute bottom-4 left-4">
-      <CornerOrnament flipY />
-    </div>
-    <div className="absolute bottom-4 right-4">
-      <CornerOrnament flipX flipY />
-    </div>
+    <div className="absolute top-4 left-4"><CornerOrnament /></div>
+    <div className="absolute top-4 right-4"><CornerOrnament flipX /></div>
+    <div className="absolute bottom-4 left-4"><CornerOrnament flipY /></div>
+    <div className="absolute bottom-4 right-4"><CornerOrnament flipX flipY /></div>
 
     {/* === CARD CONTENT === */}
     <div className="relative z-10"
       style={{ padding: 'clamp(16px, 5vw, 44px) clamp(14px, 4.5vw, 40px)' }}>
 
-      {/* ── 1. Logos row ── */}
-      <div className="flex items-center justify-center gap-3 sm:gap-5 mb-4">
+      {/* ── 1. Logos row (tanpa label teks) ── */}
+      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-3">
         <LogoCircle src="/mpk.png" alt="MPK"
           fallbackIcon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
@@ -107,28 +76,13 @@ const GreetingCard = ({ t }) => (
             </svg>
           }
         />
-
-        {/* Smantas center logo — slightly bigger */}
-        <div className="flex flex-col items-center gap-1">
-          <div
-            className="logo-circle rounded-full overflow-hidden flex items-center justify-center"
-            style={{
-              width:      'clamp(52px, 14vw, 72px)',
-              height:     'clamp(52px, 14vw, 72px)',
-              border:     '2px solid rgba(201,148,26,0.6)',
-              background: 'rgba(255,255,255,0.85)',
-              boxShadow:  '0 4px 18px rgba(0,0,0,0.15)',
-              flexShrink: 0,
-            }}
-          >
-            <img src="/smantas.png" alt="SMAN 13" className="w-full h-full object-cover" />
-          </div>
-          <span className="font-poppins font-bold tracking-widest uppercase"
-            style={{ fontSize: 'clamp(0.45rem, 1.5vw, 0.58rem)', color: '#C9941A' }}>
-            SMAN 13
-          </span>
-        </div>
-
+        <LogoCircle src="/smantas.png" alt="SMAN 13" size="lg"
+          fallbackIcon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+          }
+        />
         <LogoCircle src="/osis.png" alt="OSIS"
           fallbackIcon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
@@ -153,13 +107,14 @@ const GreetingCard = ({ t }) => (
         }}>
         {t.arabic}
       </div>
+
       {/* ── 4. Divider ── */}
       <GeomDivider opacity={0.6} />
 
-      {/* ── 5. Moon SVG ── */}
+      {/* ── 5. Mosque SVG ── */}
       <div className="flex justify-center my-2">
         <div className="moon-glow">
-          <CrescentMoon size={Math.min(72, 18 * 4)} />
+          <MosqueSVG size={Math.min(110, window?.innerWidth ? window.innerWidth * 0.22 : 90)} />
         </div>
       </div>
 
@@ -181,7 +136,6 @@ const GreetingCard = ({ t }) => (
           {t.line2}
         </h2>
 
-        {/* Arabic calligraphy of the greeting */}
         <div
           className="font-amiri mt-2"
           style={{
@@ -211,12 +165,12 @@ const GreetingCard = ({ t }) => (
         </span>
       </div>
 
-      {/* Ornamental star divider */}
+      {/* ── 9. Ornamental star divider ── */}
       <div className="ornament-line my-2">
         <StarDot size={14} />
       </div>
 
-      {/* ── 9. Body text ── */}
+      {/* ── 10. Body text ── */}
       <p className="font-poppins font-normal text-center leading-relaxed"
         style={{
           fontSize:   'clamp(0.7rem, 2.2vw, 0.9rem)',
@@ -232,7 +186,7 @@ const GreetingCard = ({ t }) => (
         — {t.dua} —
       </p>
 
-      {/* ── 10. Year ribbon ── */}
+      {/* ── 11. Year ribbon ── */}
       <div className="flex justify-center mb-4">
         <span className="font-poppins font-semibold text-white uppercase rounded"
           style={{
@@ -244,13 +198,6 @@ const GreetingCard = ({ t }) => (
           }}>
           {t.year}
         </span>
-      </div>
-
-      {/* ── 11. Wishes grid ── */}
-      <div className="grid grid-cols-2 gap-1.5 mb-4">
-        {t.wishes.map((w, i) => (
-          <WishItem key={i} text={w} />
-        ))}
       </div>
 
       {/* ── 12. Sender box ── */}

@@ -163,19 +163,20 @@ export const GeomDivider = ({ opacity = 1 }) => (
     width="100%"
     height="20"
     viewBox="0 0 400 20"
-    preserveAspectRatio="none"
+    preserveAspectRatio="xMidYMid meet"
     xmlns="http://www.w3.org/2000/svg"
-    style={{ opacity }}
+    style={{ opacity, display: 'block' }}
   >
-    <line x1="0"   y1="10" x2="148" y2="10"
+    {/* diamonds centered at x=200 */}
+    <line x1="0"   y1="10" x2="172" y2="10"
       stroke="rgba(201,148,26,0.3)" strokeWidth="0.8" />
-    <polygon points="154,10 162,3 170,10 162,17"
+    <polygon points="176,10 184,3 192,10 184,17"
       fill="none" stroke="#C9941A" strokeWidth="0.9" />
-    <polygon points="174,10 182,3 190,10 182,17"
+    <polygon points="192,10 200,3 208,10 200,17"
       fill="rgba(201,148,26,0.22)" stroke="#C9941A" strokeWidth="0.9" />
-    <polygon points="194,10 202,3 210,10 202,17"
+    <polygon points="208,10 216,3 224,10 216,17"
       fill="none" stroke="#C9941A" strokeWidth="0.9" />
-    <line x1="216" y1="10" x2="400" y2="10"
+    <line x1="228" y1="10" x2="400" y2="10"
       stroke="rgba(201,148,26,0.3)" strokeWidth="0.8" />
   </svg>
 )
