@@ -3,31 +3,34 @@ import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
 /**
- * SUSUNAN LAYER AMPLOP (z-index dari bawah ke atas):
+ * ANIMASI MASUK AMPLOP — Arsitektur final:
  *
- *  z:1  inside pocket (background kuning dalam amplop)
- *  z:2  islamic pattern + pentagon SAAT kartu menjulur (tidak menutupi kartu)
- *  z:3  inside card container
- *  z:4  pentagon SAAT PEEKING/CLOSING/IDLE (menutupi bagian bawah kartu peek)
- *  z:15 flap (terbuka saat ENTERING/ENTERED, menutup saat CLOSING_FLAP)
+ * Dua elemen kartu:
+ *  1. STAGE CARD  — sibling di luar envelope body (bukan child)
+ *     - z:8 → di BAWAH envelope body (z:10)
+ *     - Saat slide turun, bagian yang overlap dengan body tertutup NATURAL oleh body
+ *     - Aktif selama ABOVE_FLAP dan ENTERING
  *
- * ANIMASI MASUK (ENTERING → ENTERED → CLOSING_FLAP):
+ *  2. INSIDE CARD — child di dalam envelope body (overflow:hidden)
+ *     - Aktif mulai PEEKING (normal) dan ENTERED (setelah stage card selesai)
+ *     - top:5% = posisi peek
  *
- *  ENTERING:
- *    - inside card container: overflow:visible, clip hanya sisi & bawah
- *      (kartu bisa menjulur ke ATAS melewati batas amplop)
- *    - cardInsideTop: -55% → kartu menjulur tinggi
- *    - pentagon z:2 → di BAWAH kartu, tidak menutupi
+ * Stage card bergerak dari ATAS ke BAWAH:
+ *   ABOVE_FLAP : stage card di atas amplop penuh (tidak overlap body sama sekali)
+ *   ENTERING   : stage card slide turun, body amplop progressively menutupi bagian bawahnya
  *
- *  ENTERED:
- *    - sama dengan ENTERING (kartu masih menjulur tinggi, diam)
- *    - pentagon z:2 → tidak menutupi
+ * Saat ENTERED: stage card hilang, inside card snap ke peek — transisi seamless
+ * karena pada saat itu stage card sudah separuh tertutup body (posisi mirip peek).
  *
- *  CLOSING_FLAP:
- *    - inside card container: overflow:hidden (kartu tidak tembus bawah/samping)
- *    - cardInsideTop: slide dari -55% → 5% (kartu masuk ke dalam)
- *    - pentagon z:4 → menutupi bagian bawah kartu peek
- *    - flap menutup dari atas
+ * z-index:
+ *   stage card    → z:8   (sibling, di bawah body z:10 → body clip bagian bawahnya)
+ *   envelope body → z:10
+ *   inside card   → z:3   (child, overflow:hidden)
+ *   pentagon      → z:4   (child, di atas inside card saat peek)
+ *   flap          → z:15  (child)
+ *
+ * Pentagon TIDAK menutupi stage card karena stage card adalah sibling di luar body.
+ * Pentagon hanya relevan untuk inside card (child).
  */
 
 const PHASE = {
@@ -83,23 +86,32 @@ const Envelope = ({
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // ── Tutup kartu → masuk amplop → tutup flap ──
+  // ── Tutup kartu ──
+  // Alur: RETURNING → ABOVE_FLAP → ENTERING → ENTERED → CLOSING_FLAP → IDLE
+  //
+  // Timeline (ms dari user klik close):
+  //   0    : RETURNING  — overlay mulai fade out
+  //   300  : ABOVE_FLAP — stage card snap muncul di atas amplop
+  //   650  : ENTERING   — stage card mulai slide turun (durasi 900ms)
+  //   1550 : ENTERED    — stage card selesai di posisi, switch ke inside card
+  //   1600 : CLOSING_FLAP — inside card di peek, flap mulai menutup (durasi 700ms)
+  //   2300 : IDLE
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
-    const T0  = 300  // overlay fade out
-    const T1  = 350  // kartu muncul diam sebentar di atas amplop
-    const T2  = 700  // slide kartu turun (ENTERING → ENTERED)
-    const T2e = 450  // kartu sudah cukup masuk → ENTERED (diam menjulur)
-    const T3  = 650  // CLOSING_FLAP: kartu slide masuk ke peek + flap menutup
+    const T0 = 300   // overlay fade out sebelum stage card muncul
+    const T1 = 350   // stage card diam sebentar di atas amplop
+    const T2 = 900   // durasi slide stage card turun masuk
+    const T3 = 50    // jeda kecil sebelum switch ke inside card
+    const T4 = 700   // flap menutup
     setPhase(PHASE.RETURNING)
     go(PHASE.ABOVE_FLAP,   T0)
     go(PHASE.ENTERING,     T0 + T1)
-    go(PHASE.ENTERED,      T0 + T1 + T2e)
-    go(PHASE.CLOSING_FLAP, T0 + T1 + T2)
-    go(PHASE.IDLE,         T0 + T1 + T2 + T3)
+    go(PHASE.ENTERED,      T0 + T1 + T2)
+    go(PHASE.CLOSING_FLAP, T0 + T1 + T2 + T3)
+    go(PHASE.IDLE,         T0 + T1 + T2 + T3 + T4)
     const doneId = setTimeout(() => {
       if (onEnvelopeClosed) onEnvelopeClosed()
-    }, T0 + T1 + T2 + T3 + 50)
+    }, T0 + T1 + T2 + T3 + T4 + 50)
     timers.current.push(doneId)
   }, [cardViewing, go, onEnvelopeClosed])
 
@@ -115,101 +127,72 @@ const Envelope = ({
   const insideShow = !is(PHASE.IDLE)
 
   // ─────────────────────────────────────────────────────────
-  // INSIDE CARD
+  // STAGE CARD (sibling di luar envelope body)
   // ─────────────────────────────────────────────────────────
+  //
+  // Diposisikan relatif ke scene container (bukan ke envelope body).
+  // Envelope body mulai dari top:0 (paddingTop:64% = tinggi body relatif).
+  //
+  // Anchor: bottom stage card = top envelope body.
+  // Kita gunakan `bottom` dari scene container.
+  // Scene container tingginya = tinggi envelope body = paddingTop:64% dari lebarnya.
+  // Jadi bottom:100% = tepat di atas envelope body.
+  //
+  // ABOVE_FLAP : translateY(0)    — kartu penuh di atas amplop
+  // ENTERING   : translateY(Xpx)  — slide turun, body menutupi bagian bawah kartu
+  //
+  // Berapa jauh harus turun? Kita ingin kartu ~60% masuk ke dalam body saat selesai.
+  // Kartu tingginya ≈ lebar amplop × 1.3 (aspect ratio kartu).
+  // Envelope body tingginya = 64% dari lebarnya.
+  // Kita ingin bottom kartu berada di ~60% dari bawah envelope body.
+  // → translateY = tinggi_kartu × 0.6 ≈ (lebar × 1.3) × 0.6 = lebar × 0.78
+  // Tapi karena kita pakai %, translateY % dihitung dari tinggi ELEMEN itu sendiri.
+  // translateY(60%) = geser ke bawah 60% dari tinggi kartu.
+  // Ini membuat separuh lebih kartu masuk ke dalam body amplop.
+  //
+  // z:8 → di bawah body (z:10) → body menutupi bagian bawah stage card secara natural.
 
-  // top position:
-  //   ABOVE_FLAP        → -120% : tersembunyi penuh di atas (di luar clip area)
-  //   ENTERING / ENTERED→ -55%  : kartu menjulur tinggi, separuh bawah di dalam amplop
-  //   CLOSING_FLAP      → 5%   : slide masuk ke posisi peek (transition)
-  //   PEEKING/FLYING/FS → 5%   : posisi peek normal
-  //   lainnya           → 110% : tersembunyi di bawah
+  const showStageCard = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING)
+
+  const stageTransform = is(PHASE.ENTERING)
+    ? 'translateY(62%)'   // turun 62% dari tinggi kartu → ~separuh lebih masuk ke body
+    : 'translateY(0%)'    // di atas amplop
+
+  const stageTransition = is(PHASE.ENTERING)
+    ? 'transform 0.9s cubic-bezier(0.25,0.46,0.45,0.94)'
+    : 'none'
+
+  // ─────────────────────────────────────────────────────────
+  // INSIDE CARD (child envelope body, overflow:hidden)
+  // ─────────────────────────────────────────────────────────
+  //
+  // Hanya aktif saat PEEKING (normal) dan ENTERED/CLOSING_FLAP (setelah stage card).
+  // Saat ENTERED: snap langsung ke top:5% — karena stage card baru saja di posisi
+  // yang hampir sama (separuh masuk), transisi ke inside card nyaris tidak terasa.
+
   const cardInsideTop = (() => {
-    if (isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN)) return '5%'
-    if (is(PHASE.CLOSING_FLAP)) return '5%'
-    if (isAny(PHASE.ENTERING, PHASE.ENTERED))                 return '-55%'
-    if (is(PHASE.ABOVE_FLAP))                                 return '-120%'
-    return '110%'
+    if (isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
+              PHASE.ENTERED, PHASE.CLOSING_FLAP)) return '5%'
+    return '110%'  // tersembunyi di bawah di semua fase lain
   })()
 
   const cardInsideOpacity = isAny(
     PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
-    PHASE.ENTERING, PHASE.ENTERED, PHASE.CLOSING_FLAP
+    PHASE.ENTERED, PHASE.CLOSING_FLAP
   ) ? 1 : 0
 
-  const cardInsideVisibility = isAny(PHASE.IDLE, PHASE.OPENING) ? 'hidden' : 'visible'
+  const cardInsideVisibility = isAny(
+    PHASE.IDLE, PHASE.OPENING,
+    PHASE.ABOVE_FLAP, PHASE.ENTERING  // stage card yang handle, inside card hidden
+  ) ? 'hidden' : 'visible'
 
-  const cardInsideTransition = (() => {
-    if (is(PHASE.ENTERING))     return 'top 0.7s cubic-bezier(0.4,0,0.55,1)'
-    if (is(PHASE.CLOSING_FLAP)) return 'top 0.5s cubic-bezier(0.4,0,0.6,1)'
-    return 'none'
-  })()
+  const cardInsideTransition = 'none'  // snap — stage card yang handle animasi visual
 
   const cardClickable = is(PHASE.PEEKING)
 
-  // ─────────────────────────────────────────────────────────
-  // INSIDE CARD CONTAINER
-  //
-  // Saat ENTERING / ENTERED:
-  //   overflow: visible + clipPath yang hanya memotong sisi kiri/kanan/bawah.
-  //   Sisi ATAS BEBAS → kartu bisa menjulur ke atas melewati batas amplop.
-  //   clipPath: inset(0 0 0 0) dengan overflow:visible tidak cukup —
-  //   kita pakai overflow:visible dan andalkan envelope body (z:10) untuk
-  //   menutupi bagian bawah kartu dari luar.
-  //   TAPI: inside card container adalah CHILD dari envelope body, jadi
-  //   envelope body TIDAK bisa menutupi child-nya sendiri.
-  //
-  //   Solusi: container diperbesar ke atas dengan top negatif + padding top,
-  //   sehingga kartu yang menjulur masuk ke area "di atas" amplop secara DOM
-  //   tapi tetap visible.
-  //
-  // Saat CLOSING_FLAP / PEEKING:
-  //   overflow: hidden → kartu terpotong rapi di dalam amplop.
-  // ─────────────────────────────────────────────────────────
-
-  // Saat kartu menjulur (ENTERING/ENTERED): perluas container ke atas
-  // supaya kartu di top:-55% bisa terlihat (tidak dipotong oleh inset:0)
-  const cardContainerStyle = (() => {
-    if (isAny(PHASE.ENTERING, PHASE.ENTERED)) {
-      return {
-        position:   'absolute',
-        left: 0, right: 0, bottom: 0,
-        top:        '-120%',      // container diperluas ke atas
-        overflow:   'visible',    // kartu bebas menjulur ke atas
-        zIndex:     16,           // di atas flap (z:15) agar terlihat
-        pointerEvents: 'none',
-        borderRadius: 'inherit',
-      }
-    }
-    if (is(PHASE.ABOVE_FLAP)) {
-      return {
-        position:   'absolute',
-        left: 0, right: 0, bottom: 0,
-        top:        '-120%',
-        overflow:   'visible',
-        zIndex:     16,
-        pointerEvents: 'none',
-        borderRadius: 'inherit',
-      }
-    }
-    // CLOSING_FLAP, PEEKING, dsb: overflow hidden, container normal
-    return {
-      position:      'absolute',
-      inset:         0,
-      overflow:      'hidden',
-      zIndex:        3,
-      pointerEvents: 'none',
-      borderRadius:  'inherit',
-    }
-  })()
-
-  // ─────────────────────────────────────────────────────────
-  // PENTAGON z-index
-  //
-  // ENTERING / ENTERED: z:2 → kartu (z:16) terlihat di depan pentagon
-  // CLOSING_FLAP / PEEKING / IDLE: z:4 → pentagon menutupi bagian bawah kartu
-  // ─────────────────────────────────────────────────────────
-  const pentagonZ = isAny(PHASE.ENTERING, PHASE.ENTERED, PHASE.ABOVE_FLAP) ? 2 : 4
+  // Pentagon: z:4 saat peek/close (menutupi bawah inside card), z:2 saat tidak perlu
+  const pentagonZ = isAny(PHASE.PEEKING, PHASE.FLYING, PHASE.FULLSCREEN,
+                           PHASE.ENTERED, PHASE.CLOSING_FLAP, PHASE.IDLE) ? 4 : 2
 
   // ── Overlay ──
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
@@ -316,10 +299,39 @@ const Envelope = ({
 
       {/* ══════════════════════════════════════════════
           ENVELOPE SCENE
+          position:relative — semua absolute children relatif ke sini
       ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
-        {/* ── ENVELOPE BODY ── z:10 */}
+        {/* ── STAGE CARD ──────────────────────────────────────
+         * Sibling dari envelope body, bukan child.
+         * Diposisikan dengan bottom:0 + transform agar bottom kartu
+         * sejajar dengan TOP envelope body saat ABOVE_FLAP.
+         *
+         * z:8 → di BAWAH envelope body (z:10).
+         * Saat stage card slide turun (ENTERING), bagian yang overlap
+         * dengan envelope body tertutup oleh body secara NATURAL (z:10 > z:8).
+         * Pentagon tidak relevan di sini karena stage card adalah sibling,
+         * bukan child — pentagon (di dalam body) tidak bisa menutupi stage card.
+         * ──────────────────────────────────────────────────── */}
+        {showStageCard && (
+          <div style={{
+            position:   'absolute',
+            left:       '5%',
+            right:      '5%',
+            bottom:     '100%',    // bottom stage card = top envelope body
+            zIndex:     8,         // di bawah envelope body z:10
+            transform:  stageTransform,
+            transition: stageTransition,
+            willChange: 'transform',
+            pointerEvents: 'none',
+            filter:     'drop-shadow(0 -6px 20px rgba(0,0,0,0.4))',
+          }}>
+            <MemoCard t={t} />
+          </div>
+        )}
+
+        {/* ── ENVELOPE BODY ─────────────────────────────────── z:10 ── */}
         <div
           className={`relative select-none ${is(PHASE.IDLE) ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
           onClick={is(PHASE.IDLE) ? onOpenEnvelope : undefined}
@@ -328,13 +340,18 @@ const Envelope = ({
             background:   'linear-gradient(162deg,#DEC07A 0%,#C4A15A 48%,#9A7830 100%)',
             boxShadow:    '0 20px 56px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.4)',
             borderRadius: '8px 8px 14px 14px',
+            overflow:     'hidden',   // selalu hidden — body memotong stage card dari bawah
             zIndex:       10,
-            // overflow:visible saat ENTERING/ENTERED agar kartu bisa menjulur ke atas
-            overflow:     isAny(PHASE.ENTERING, PHASE.ENTERED, PHASE.ABOVE_FLAP) ? 'visible' : 'hidden',
           }}
         >
-          {/* ── INSIDE CARD CONTAINER ── */}
-          <div style={cardContainerStyle}>
+          {/* ── INSIDE CARD ── overflow:hidden dari parent body ── */}
+          <div style={{
+            position:   'absolute', inset: 0,
+            overflow:   'hidden',
+            zIndex:     3,
+            pointerEvents: 'none',
+            borderRadius: 'inherit',
+          }}>
             <div
               onClick={cardClickable ? onViewCard : undefined}
               style={{
@@ -377,8 +394,9 @@ const Envelope = ({
           }}/>
 
           {/* Bottom fold pentagon
-           * ENTERING/ENTERED/ABOVE_FLAP : z:2  → di BAWAH kartu (z:16), tidak menutupi
-           * CLOSING_FLAP/PEEKING/IDLE   : z:4  → di ATAS inside card (z:3), menutupi bawah kartu peek
+           * Ini hanya relevan untuk inside card (child).
+           * Stage card (sibling) tidak dipengaruhi pentagon sama sekali.
+           * z:4 → selalu di atas inside card (z:3) untuk menutupi bagian bawah kartu peek.
            */}
           <div className="absolute inset-0 pointer-events-none" style={{
             zIndex:    pentagonZ,
@@ -386,10 +404,7 @@ const Envelope = ({
             clipPath:  'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
 
-          {/* TOP FLAP — z:15
-           * Terbuka selama ABOVE_FLAP, ENTERING, ENTERED (kartu menjulur).
-           * Menutup di CLOSING_FLAP setelah kartu mulai masuk ke peek.
-           */}
+          {/* TOP FLAP — z:15 */}
           <div style={{
             position:'absolute', inset:0,
             zIndex:          15,
