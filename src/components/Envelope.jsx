@@ -343,7 +343,7 @@ const Envelope = ({
           {/* Bottom fold pentagon — z:17 saat ENTERING agar menutupi bagian bawah kartu
            * (inside card container z:16), z:4 di fase lain */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            zIndex: is(PHASE.ENTERING) ? 17 : 4,
+            zIndex: isAny(PHASE.ENTERED, PHASE.CLOSING_FLAP) ? 17 : 4,
             background:'linear-gradient(160deg,#B8902A 0%,#C8AA60 30%,#B0882A 50%,#C8AA60 70%,#B8902A 100%)',
             clipPath:'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
