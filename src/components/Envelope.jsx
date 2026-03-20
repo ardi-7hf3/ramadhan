@@ -123,15 +123,16 @@ const Envelope = ({
   //   top = 0 - tinggi_kartu → kartu persis di atas body amplop.
   //   Kita pakai translateY: mulai di -100% (kartu penuh di atas), slide ke +45%
   // Stage card dipasang dengan bottom:'36%' sebagai anchor di atas bukaan amplop.
+  // ABOVE_FLAP : translateY(-100%) → kartu penuh di atas envelope body, tidak overlap
+  // ENTERING   : translateY(50%)   → kartu turun 50% tingginya sendiri ke dalam body
+  //              separuh kartu overlap dengan body → body (z:10) menutupi separuh bawah
   const stageCardTransform = is(PHASE.ENTERING)
-    ? 'translateY(105%) translateZ(0)'   // turun masuk ke dalam body amplop
-    : 'translateY(0%) translateZ(0)'     // diam di atas amplop
+    ? 'translateY(50%) translateZ(0)'
+    : 'translateY(-100%) translateZ(0)'
 
   const stageCardTransition = is(PHASE.ENTERING)
     ? 'transform 0.75s cubic-bezier(0.4,0,0.6,1)'
-    : 'opacity 0.2s ease'
-
-  const stageCardOpacity = is(PHASE.ABOVE_FLAP) ? 1 : 1  // selalu 1 saat tampak
+    : 'none'
 
   // ── Inside card (di dalam overflow:hidden) ──
   // Hanya aktif saat PEEKING / FLYING / FULLSCREEN / ENTERED / CLOSING_FLAP.
@@ -268,26 +269,22 @@ const Envelope = ({
 
         {/* ── STAGE CARD ──
          * z:9 → di BAWAH envelope body (z:10).
-         * Posisi anchor: bottom dari batas atas envelope body.
-         * Saat ABOVE_FLAP: kartu penuh terlihat di atas amplop (gambar 1).
-         * Saat ENTERING: kartu slide turun, bagian yang masuk ke area body
-         *   tertutup secara NATURAL oleh envelope body (z:10) → efek masuk slot (gambar 2).
-         * Saat ENTERED: stage card hilang, inside card sudah di peek 5%.
+         *
+         * Anchor: top:0 → sejajar dengan batas atas envelope body.
+         * ABOVE_FLAP : translateY(-100%) → kartu penuh di atas amplop (tidak overlap body)
+         * ENTERING   : translateY(50%)  → kartu turun, separuh masuk ke dalam body.
+         *   Karena z:9 < z:10, bagian kartu yang overlap dengan body TERTUTUP body secara natural.
+         *   Tidak perlu clip apapun — ini adalah CSS stacking context bekerja sebagaimana mestinya.
          */}
         {showStageCard && (
           <div style={{
             position:   'absolute',
             left: '5%', right: '5%',
-            // Anchor di bagian atas envelope body.
-            // paddingTop:64% → top envelope body ≈ 0 dari container.
-            // Kita taruh bottom kartu tepat di batas atas envelope body.
-            bottom: '100%',
-            marginBottom: '-1px',   // rapat tanpa gap
-            zIndex:     9,          // DI BAWAH envelope body (z:10) → body clips bagian bawah
+            top:        0,            // sejajar batas atas envelope body
+            zIndex:     9,            // di BAWAH envelope body (z:10)
             transform:  stageCardTransform,
             transition: stageCardTransition,
             willChange: 'transform',
-            opacity:    stageCardOpacity,
             filter:     'drop-shadow(0 -8px 24px rgba(0,0,0,0.5))',
             pointerEvents: 'none',
           }}>
@@ -358,9 +355,12 @@ const Envelope = ({
             background:'linear-gradient(90deg,rgba(0,0,0,0.09) 0%,transparent 16%,transparent 84%,rgba(0,0,0,0.09) 100%)',
           }}/>
 
-          {/* Bottom fold pentagon — z:4 (tidak perlu naik, body amplop yang clip stage card) */}
+          {/* Bottom fold pentagon
+           * z:4 hanya saat CLOSING_FLAP & IDLE → menutupi kartu peek dari depan
+           * z:2 di fase lain → kartu (z:3) tampak di depan pentagon
+           */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            zIndex:4,
+            zIndex: isAny(PHASE.CLOSING_FLAP, PHASE.IDLE) ? 4 : 2,
             background:'linear-gradient(160deg,#B8902A 0%,#C8AA60 30%,#B0882A 50%,#C8AA60 70%,#B8902A 100%)',
             clipPath:'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
