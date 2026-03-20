@@ -70,7 +70,7 @@ const Loader = ({ done }) => (
       className="font-poppins font-semibold text-xs tracking-widest uppercase animate-blink-fade"
       style={{ color: '#3ECBB8' }}
     >
-      Memuat Kartu Ucapan...
+      Memuat...
     </p>
 
     {/* Progress bar */}
