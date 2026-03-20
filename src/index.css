@@ -146,27 +146,7 @@ body {
 /* ═══════════════════════════════════════════
    STAGGERED CARD CONTENT REVEAL
 ═══════════════════════════════════════════ */
-@keyframes fadeUpStagger {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 
-.reveal-stagger > * {
-  opacity: 0;
-  animation: fadeUpStagger 0.6s ease both;
-}
-.reveal-stagger > *:nth-child(1)  { animation-delay: 0.05s; }
-.reveal-stagger > *:nth-child(2)  { animation-delay: 0.15s; }
-.reveal-stagger > *:nth-child(3)  { animation-delay: 0.25s; }
-.reveal-stagger > *:nth-child(4)  { animation-delay: 0.35s; }
-.reveal-stagger > *:nth-child(5)  { animation-delay: 0.45s; }
-.reveal-stagger > *:nth-child(6)  { animation-delay: 0.55s; }
-.reveal-stagger > *:nth-child(7)  { animation-delay: 0.65s; }
-.reveal-stagger > *:nth-child(8)  { animation-delay: 0.75s; }
-.reveal-stagger > *:nth-child(9)  { animation-delay: 0.85s; }
-.reveal-stagger > *:nth-child(10) { animation-delay: 0.95s; }
-.reveal-stagger > *:nth-child(11) { animation-delay: 1.05s; }
-.reveal-stagger > *:nth-child(12) { animation-delay: 1.15s; }
 
 /* ═══════════════════════════════════════════
    LANTERN ANIMATIONS
@@ -246,14 +226,10 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   LOGO CIRCLE HOVER
+   LOGO CIRCLE
 ═══════════════════════════════════════════ */
 .logo-circle {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.logo-circle:hover {
-  transform: scale(1.08) rotate(5deg);
-  box-shadow: 0 0 24px rgba(201, 148, 26, 0.5);
+  /* no hover animation */
 }
 
 /* ═══════════════════════════════════════════
