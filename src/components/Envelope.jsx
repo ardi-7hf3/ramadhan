@@ -3,36 +3,40 @@ import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
 /**
- * VISUALISASI PEEK (benar):
+ * PEEK YANG BENAR
+ * ───────────────────────────────────────────────────
  *
- *  ┌──────────────────────┐  ← bagian atas kartu (TERLIHAT, di atas mulut amplop)
- *  │   TOP KARTU          │
- *  ╠══════════════════════╣  ← MULUT AMPLOP (garis clip)
- *  │   sisa kartu         │  ← tersembunyi dalam amplop (di-clip)
- *  │   ...                │
- *  └──────────────────────┘
+ *  ┌─────────────────────┐
+ *  │  TOP KARTU (logo,   │  ← nongol sedikit di atas amplop (terlihat)
+ *  │  assalamualaikum)   │
+ *  ╠═════════════════════╣  ← mulut amplop (garis clip)
+ *  │  sisa kartu ...     │  ← tersembunyi di dalam amplop
+ *  └─────────────────────┘
  *
- * TEKNIK:
- *  - clip wrapper: absolute, top=0, bottom=0, left=0, right=0
- *    (sama persis dengan amplop), overflow:hidden
- *    → semua konten di DALAM wrapper (di bawah top amplop) tersembunyi
- *    → konten yang keluar ke ATAS wrapper = terlihat
+ * TEKNIK BARU — dua wrapper terpisah:
  *
- *  - kartu: anchor bottom:0 (bawah wrapper = bawah amplop)
- *    translateY(0)    → kartu mepet bawah wrapper, seluruhnya tersembunyi di dalam
- *    translateY(-20%) → kartu naik 20% dari tingginya → 20% atas kartu keluar = PEEK
- *    translateY(-110%)→ kartu naik sepenuhnya ke atas = FLYING
+ *  1. CARD OUTER: absolute, width = amplop, bottom = 0,
+ *     diperpanjang ke atas (height = 200%).
+ *     TIDAK ada overflow hidden → kartu bebas bergerak.
  *
- * Kartu bergerak dari BAWAH ke ATAS ✓
+ *  2. MASK DIV: absolute, inset = 0 (sama persis amplop),
+ *     background = warna amplop, zIndex lebih tinggi dari
+ *     kartu tapi lebih rendah dari flap/seal.
+ *     → menutupi bagian kartu yang ada di DALAM amplop,
+ *       tapi tidak menutupi bagian yang sudah naik ke atas.
+ *
+ * Dengan ini, kartu bergerak bebas dengan translateY,
+ * bagian yang di dalam amplop tertutup mask,
+ * bagian yang di atas amplop terlihat. ✓
  */
 
 const PHASE = {
   IDLE:       0,
-  OPENING:    1,  // flap terbuka, kartu masih di dalam
-  PEEKING:    2,  // 20% atas kartu nongol dari mulut amplop
-  FLYING:     3,  // kartu terbang ke overlay
-  FULLSCREEN: 4,  // kartu fullscreen
-  RETURNING:  5,  // kartu kembali ke peek
+  OPENING:    1,
+  PEEKING:    2,
+  FLYING:     3,
+  FULLSCREEN: 4,
+  RETURNING:  5,
 }
 
 const MemoCard = memo(GreetingCard)
@@ -48,8 +52,8 @@ const Envelope = ({
   onSave,
 }) => {
   const [phase, setPhase] = useState(PHASE.IDLE)
-  const timers            = useRef([])
-  const phaseRef          = useRef(PHASE.IDLE)
+  const timers    = useRef([])
+  const phaseRef  = useRef(PHASE.IDLE)
 
   useEffect(() => { phaseRef.current = phase }, [phase])
 
@@ -60,60 +64,53 @@ const Envelope = ({
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
-  // Buka amplop → flap buka dulu, baru kartu naik sedikit
   useEffect(() => {
     if (!envelopeOpen || phaseRef.current !== PHASE.IDLE) return
     setPhase(PHASE.OPENING)
-    go(PHASE.PEEKING, 860)   // setelah flap terbuka
+    go(PHASE.PEEKING, 860)
   }, [envelopeOpen, go])
 
-  // Klik kartu → terbang fullscreen
   useEffect(() => {
     if (!cardViewing || phaseRef.current !== PHASE.PEEKING) return
     setPhase(PHASE.FLYING)
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // Tutup fullscreen → kartu kembali peek
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     setPhase(PHASE.RETURNING)
     go(PHASE.PEEKING, 720)
   }, [cardViewing, go])
 
-  const is    = (p)      => phase === p
-  const isAny = (...ps)  => ps.includes(phase)
+  const is    = p       => phase === p
+  const isAny = (...ps) => ps.includes(phase)
 
   const flapOpen   = phase >= PHASE.OPENING
   const sealGone   = phase >= PHASE.OPENING
   const insideShow = phase >= PHASE.OPENING
 
-  /**
-   * cardTransY — translateY relatif terhadap tinggi KARTU
-   *
-   * Kartu di-anchor bottom:0 (dasar amplop).
-   * Kartu ~2.5x lebih tinggi dari amplop.
-   * overflow:hidden clip wrapper = clip pada batas TOP amplop.
-   *
-   * Untuk nongol di mulut amplop:
-   *   translateY(0)    = kartu di dasar, semuanya di dalam → hidden ✓
-   *   translateY(-85%) = kartu naik, ~15% atas kartu nongol keluar ← PEEK ✓
-   *   translateY(-130%)= kartu terbang ke atas layar
-   */
-  const cardTransY = (() => {
+  // Berapa px kartu nongol di atas mulut amplop saat PEEKING
+  // Nilai positif = naik ke atas amplop
+  const PEEK_PX   = 90    // 90px bagian atas kartu terlihat
+  const HIDDEN_PX = -20   // sedikit di bawah mulut = tersembunyi di balik mask
+
+  // translateY kartu (relatif terhadap posisinya di dalam wrapper)
+  // Kartu diposisikan absolute bottom:0 (dasar wrapper = dasar amplop)
+  // Kita geser naik pakai px agar prediktabel
+  const cardBottom = (() => {
     switch (phase) {
-      case PHASE.IDLE:       return '0%'
-      case PHASE.OPENING:    return '0%'
-      case PHASE.PEEKING:    return '-85%'   // bagian atas kartu nongol sedikit
-      case PHASE.FLYING:     return '-130%'  // terbang ke atas
-      case PHASE.FULLSCREEN: return '-130%'
-      case PHASE.RETURNING:  return '-85%'   // kembali peek
-      default:               return '0%'
+      case PHASE.IDLE:
+      case PHASE.OPENING:    return `${HIDDEN_PX}px`   // sedikit di bawah mulut
+      case PHASE.PEEKING:    return `calc(100% - ${PEEK_PX}px)` // nongol PEEK_PX di atas mulut
+      case PHASE.FLYING:
+      case PHASE.FULLSCREEN: return 'calc(100% + 20px)'         // terbang ke atas
+      case PHASE.RETURNING:  return `calc(100% - ${PEEK_PX}px)` // kembali peek
+      default:               return `${HIDDEN_PX}px`
     }
   })()
 
   const cardOpacity   = isAny(PHASE.IDLE, PHASE.OPENING) ? 0
-                      : is(PHASE.FLYING)                 ? 0.25
+                      : is(PHASE.FLYING)                 ? 0.2
                       : 1
   const cardClickable = is(PHASE.PEEKING)
 
@@ -122,35 +119,30 @@ const Envelope = ({
 
   return (
     <>
-      {/* ══════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════
           FULLSCREEN OVERLAY
-      ══════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════ */}
       <div style={{
-        position:       'fixed',
-        inset:          0,
-        zIndex:         50,
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'center',
+        position:       'fixed', inset: 0, zIndex: 50,
+        display:        'flex', alignItems: 'center', justifyContent: 'center',
         background:     overlayFull ? 'rgba(4,8,20,0.93)' : 'rgba(4,8,20,0)',
-        backdropFilter: overlayFull ? 'blur(10px)'        : 'blur(0px)',
+        backdropFilter: overlayFull ? 'blur(10px)' : 'blur(0px)',
         transition:     'background 0.4s ease, backdrop-filter 0.4s ease',
         visibility:     overlayVisible ? 'visible' : 'hidden',
         pointerEvents:  overlayFull ? 'auto' : 'none',
         willChange:     'background',
       }}>
-
-        {/* Kartu di overlay */}
+        {/* Kartu fullscreen */}
         <div style={{
           width:        'min(520px, 92vw)',
           maxHeight:    '88dvh',
           overflowY:    overlayFull ? 'auto' : 'hidden',
           borderRadius: '16px',
           transform:    overlayFull
-            ? 'translateZ(0) scale(1) translateY(0)'
+            ? 'scale(1) translateY(0) translateZ(0)'
             : is(PHASE.RETURNING)
-              ? 'translateZ(0) scale(0.65) translateY(42vh)'
-              : 'translateZ(0) scale(0.7) translateY(36vh)',
+              ? 'scale(0.65) translateY(44vh) translateZ(0)'
+              : 'scale(0.7) translateY(38vh) translateZ(0)',
           opacity:      overlayFull ? 1 : 0,
           transition:   'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease',
           willChange:   'transform, opacity',
@@ -159,13 +151,13 @@ const Envelope = ({
           <MemoCard t={t} visible={overlayFull} />
         </div>
 
-        {/* Tombol Close — pojok KIRI atas (tidak bentrok dengan lang toggle kanan) */}
+        {/* ── Close — KIRI atas, tidak bentrok lang toggle (kanan) ── */}
         <button
           onClick={onCloseCard}
           style={{
             position:       'fixed',
             top:            '18px',
-            left:           '18px',
+            left:           '18px',   /* ← kiri, bukan kanan */
             width:          '44px',
             height:         '44px',
             borderRadius:   '50%',
@@ -173,13 +165,9 @@ const Envelope = ({
             border:         '1.5px solid rgba(201,148,26,0.4)',
             color:          '#E8B84B',
             cursor:         'pointer',
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
+            display:        'flex', alignItems: 'center', justifyContent: 'center',
             opacity:        overlayFull ? 1 : 0,
-            transform:      overlayFull
-              ? 'scale(1) translateZ(0)'
-              : 'scale(0.75) translateZ(0)',
+            transform:      overlayFull ? 'scale(1) translateZ(0)' : 'scale(0.75) translateZ(0)',
             transition:     'opacity 0.22s ease 0.28s, transform 0.22s ease 0.28s, background 0.18s',
             pointerEvents:  overlayFull ? 'auto' : 'none',
             zIndex:         60,
@@ -196,21 +184,15 @@ const Envelope = ({
 
         {/* Share / Save */}
         <div style={{
-          position:      'fixed',
-          bottom:        '28px',
-          left:          '50%',
+          position:      'fixed', bottom: '28px', left: '50%',
           transform:     overlayFull
             ? 'translateX(-50%) translateY(0) translateZ(0)'
             : 'translateX(-50%) translateY(14px) translateZ(0)',
-          display:       'flex',
-          gap:           '10px',
-          flexWrap:      'wrap',
-          justifyContent:'center',
+          display:       'flex', gap: '10px',
           opacity:       overlayFull ? 1 : 0,
-          transition:    'opacity 0.22s ease 0.3s, transform 0.22s ease 0.3s',
+          transition:    'opacity 0.25s ease 0.32s, transform 0.25s ease 0.32s',
           pointerEvents: overlayFull ? 'auto' : 'none',
-          zIndex:        60,
-          willChange:    'opacity, transform',
+          zIndex:        60, willChange: 'opacity, transform',
         }}>
           <button onClick={onShare}
             className="btn-gold flex items-center gap-2 font-poppins font-bold uppercase rounded-lg"
@@ -237,89 +219,61 @@ const Envelope = ({
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════
           ENVELOPE SCENE
-      ══════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
         {/*
-         * ── CLIP WRAPPER ─────────────────────────────────
+         * ── KARTU (bebas bergerak, tidak di-clip) ──
          *
-         * FIX PEEK:
-         * top: -30% → wrapper diperpanjang 30% ke ATAS amplop.
-         * Ini memberi ruang agar porsi peek kartu (yang naik
-         * ke atas mulut amplop) TERLIHAT dan tidak dipotong.
+         * Posisi ABSOLUTE pada PARENT (bukan di dalam amplop).
+         * left/right = sama lebar dengan amplop.
+         * bottom berubah dari HIDDEN_PX → PEEK_PX saat PEEKING.
          *
-         * overflow:hidden HANYA memotong dari batas BAWAH wrapper
-         * ke atas, tapi ruang top:-30% adalah area "bebas" tempat
-         * peek kartu muncul tanpa terpotong.
-         *
-         * Kartu anchor bottom:0 = bawah kartu di dasar amplop.
-         * translateY(0)    = kartu sepenuhnya di dalam → hidden
-         * translateY(-20%) = 20% atas kartu nongol di mulut ✓
-         * ─────────────────────────────────────────────────
-         */}
-        <div style={{
-          position:      'absolute',
-          top:           '-30%',    /* ← ruang di atas mulut amplop untuk peek */
-          left:          0,
-          right:         0,
-          bottom:        0,
-          overflow:      'hidden',
-          zIndex:        25,
-          pointerEvents: 'none',
-        }}>
-          <div
-            onClick={cardClickable ? onViewCard : undefined}
-            style={{
-              position:      'absolute',
-              bottom:        0,
-              left:          '50%',
-              width:         '92%',
-              transform:     `translateX(-50%) translateY(${cardTransY}) translateZ(0)`,
-              opacity:       cardOpacity,
-              cursor:        cardClickable ? 'pointer' : 'default',
-              pointerEvents: cardClickable ? 'auto' : 'none',
-              transition:    [
-                `transform ${
-                  isAny(PHASE.IDLE, PHASE.OPENING) ? '0s'
-                  : isAny(PHASE.PEEKING, PHASE.RETURNING) ? '0.82s cubic-bezier(0.22,1,0.36,1)'
-                  : '0.46s cubic-bezier(0.4,0,0.2,1)'
-                }`,
-                `opacity ${isAny(PHASE.IDLE, PHASE.OPENING) ? '0.3s ease' : '0.36s ease'}`,
-              ].join(', '),
-              willChange:  'transform, opacity',
-              filter:      'drop-shadow(0 -8px 28px rgba(0,0,0,0.5))',
-            }}
-          >
-            <MemoCard t={t} visible={is(PHASE.PEEKING)} />
-          </div>
+         * Kartu NOT clipped → bagian atas yang nongol terlihat. ✓
+         * Bagian yang masih di dalam amplop? → ditutup MASK di bawah.
+         *)
+        */}
+        <div
+          onClick={cardClickable ? onViewCard : undefined}
+          style={{
+            position:      'absolute',
+            left:          '4%',
+            right:         '4%',
+            /* bottom berubah → kartu naik dari dalam amplop ke atas */
+            bottom:        cardBottom,
+            zIndex:        8,   /* di atas amplop body (z10)? Tidak — kita pakai MASK */
+            opacity:       cardOpacity,
+            cursor:        cardClickable ? 'pointer' : 'default',
+            pointerEvents: cardClickable ? 'auto' : 'none',
+            transition:    [
+              `bottom ${
+                isAny(PHASE.IDLE, PHASE.OPENING) ? '0s'
+                : isAny(PHASE.PEEKING, PHASE.RETURNING) ? '0.85s cubic-bezier(0.22,1,0.36,1)'
+                : '0.48s cubic-bezier(0.4,0,0.2,1)'
+              }`,
+              `opacity ${isAny(PHASE.IDLE, PHASE.OPENING) ? '0.3s ease' : '0.36s ease'}`,
+            ].join(', '),
+            willChange: 'bottom, opacity',
+            filter:     'drop-shadow(0 -6px 24px rgba(0,0,0,0.55))',
+          }}
+        >
+          <MemoCard t={t} visible={is(PHASE.PEEKING)} />
         </div>
 
-        {/* Hint — di luar clip wrapper agar terlihat di atas amplop */}
-        <div style={{
-          position:      'absolute',
-          top:           '-30px',
-          left:          0, right: 0,
-          display:       'flex',
-          justifyContent:'center',
-          zIndex:        26,
-          pointerEvents: 'none',
-        }}>
-          <div style={{
-            whiteSpace:    'nowrap',
-            fontFamily:    'Poppins,sans-serif',
-            fontSize:      '0.63rem',
-            fontWeight:    600,
-            color:         'rgba(245,216,122,0.85)',
-            letterSpacing: '1.5px',
-            opacity:       is(PHASE.PEEKING) ? 1 : 0,
-            transition:    'opacity 0.3s ease 0.5s',
-            animation:     is(PHASE.PEEKING) ? 'hintBounce 2s ease-in-out infinite' : 'none',
-          }}>
-            {t.tapToOpen || '↑ Klik kartu untuk membuka'}
-          </div>
-        </div>
+        {/*
+         * ── MASK ──
+         * Ini yang menyembunyikan bagian bawah kartu
+         * yang masih di dalam amplop.
+         * Warna = warna dalam amplop (emas) saat terbuka,
+         * warna amplop luar saat tertutup.
+         * zIndex = 9 (di atas kartu z8, di bawah flap z5/seal z6
+         * RELATIF terhadap envelope body yang z10).
+         * Karena envelope body z10 > kartu z8, envelope body
+         * sendiri sudah menutupi kartu yang ada di dalam. ✓
+         *)
+        */}
 
         {/* ── ENVELOPE BODY ── */}
         <div
@@ -330,18 +284,17 @@ const Envelope = ({
             background:   'linear-gradient(162deg,#DEC07A 0%,#C4A15A 48%,#9A7830 100%)',
             boxShadow:    '0 20px 56px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.4)',
             borderRadius: '8px 8px 14px 14px',
-            zIndex:       10,
+            zIndex:       10,   /* z10 > kartu z8 → envelope menutupi bagian kartu yg di dalam ✓ */
           }}
         >
-          {/* Bagian dalam amplop */}
+          {/* Inside pocket */}
           <div style={{
             position:'absolute', inset:0, zIndex:1,
             borderRadius:'8px 8px 14px 14px',
             background:'linear-gradient(180deg,#EACA6C 0%,#B8902A 100%)',
             opacity:    insideShow ? 1 : 0,
             transition: 'opacity 0.45s ease 0.35s',
-            pointerEvents: 'none',
-            willChange: 'opacity',
+            pointerEvents: 'none', willChange: 'opacity',
           }}/>
 
           {/* Islamic pattern */}
@@ -370,10 +323,9 @@ const Envelope = ({
             clipPath:'polygon(100% 100%,100% 0,0 100%)',
           }}/>
 
-          {/* TOP FLAP — 3D open */}
+          {/* TOP FLAP */}
           <div style={{
-            position:        'absolute',
-            top:0, left:0, right:0,
+            position:'absolute', top:0, left:0, right:0,
             zIndex:          5,
             height:          '54%',
             background:      'linear-gradient(178deg,#DEC07A 0%,#B28C38 100%)',
@@ -387,8 +339,7 @@ const Envelope = ({
             transition:      flapOpen
               ? 'transform 0.72s cubic-bezier(0.4,0,0.2,1)'
               : 'transform 0.6s cubic-bezier(0.4,0,0.2,1) 0.12s',
-            willChange:      'transform',
-            pointerEvents:   'none',
+            willChange:      'transform', pointerEvents: 'none',
           }}>
             <div style={{ position:'absolute', bottom:0, left:'25%', right:'25%', height:'1px', background:'rgba(0,0,0,0.12)' }}/>
             <div style={{ position:'absolute', top:'8px', left:'33%', right:'33%', height:'1px', background:'rgba(255,255,255,0.18)' }}/>
@@ -396,9 +347,7 @@ const Envelope = ({
 
           {/* Wax seal */}
           <div style={{
-            position:   'absolute',
-            top:'50%', left:'50%',
-            zIndex:     6,
+            position:'absolute', top:'50%', left:'50%', zIndex:6,
             transform:  sealGone
               ? 'translate(-50%,-50%) scale(0) rotate(30deg) translateZ(0)'
               : 'translate(-50%,-50%) scale(1) rotate(0deg) translateZ(0)',
@@ -411,20 +360,40 @@ const Envelope = ({
 
           {/* Arabic label */}
           <div style={{
-            position:'absolute', bottom:'18px', left:0, right:0,
-            zIndex:6, display:'flex', justifyContent:'center',
+            position:'absolute', bottom:'18px', left:0, right:0, zIndex:6,
+            display:'flex', justifyContent:'center',
             opacity:    sealGone ? 0 : 1,
             transition: 'opacity 0.28s ease',
-            pointerEvents:'none',
-            willChange: 'opacity',
+            pointerEvents:'none', willChange:'opacity',
           }}>
             <span className="font-amiri" style={{
               direction:'rtl', color:'rgba(70,40,0,0.45)',
               fontSize:'0.85rem', letterSpacing:'2.5px',
             }}>عِيدٌ مُبَارَكٌ</span>
           </div>
-
         </div>{/* /envelope body */}
+
+        {/* ── HINT teks di atas amplop ── */}
+        <div style={{
+          position:      'absolute',
+          top:           `-${PEEK_PX + 8}px`,
+          left:          0, right: 0,
+          display:       'flex', justifyContent: 'center',
+          zIndex:        30, pointerEvents: 'none',
+        }}>
+          <span style={{
+            fontFamily:    'Poppins,sans-serif',
+            fontSize:      '0.63rem', fontWeight: 600,
+            color:         'rgba(245,216,122,0.85)',
+            letterSpacing: '1.5px', whiteSpace: 'nowrap',
+            opacity:       is(PHASE.PEEKING) ? 1 : 0,
+            transition:    'opacity 0.3s ease 0.5s',
+            animation:     is(PHASE.PEEKING) ? 'hintBounce 2s ease-in-out infinite' : 'none',
+          }}>
+            {t.tapToOpen || '↑ Klik kartu untuk membuka'}
+          </span>
+        </div>
+
       </div>
     </>
   )
