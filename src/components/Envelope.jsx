@@ -3,25 +3,31 @@ import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
 /**
- * FASE CLOSE (baru):
+ * ALUR ANIMASI TUTUP KARTU:
  *
  *  FULLSCREEN
- *    ↓  klik close
- *  RETURNING   — overlay card mengecil dan terbang turun ke posisi amplop (~550ms)
+ *    ↓ klik close
+ *  RETURNING    (350ms)  — overlay mengecil + fade out
  *    ↓
- *  ENTERING    — kartu muncul di atas bukaan amplop, lalu meluncur masuk ke dalam (~650ms)
+ *  ABOVE_FLAP   (250ms)  — ghost card muncul di atas bukaan amplop
  *    ↓
- *  PEEKING     — kartu naik kembali ke posisi peek normal
+ *  ENTERING     (620ms)  — ghost meluncur masuk ke dalam amplop
+ *    ↓
+ *  CLOSING_FLAP (700ms)  — flap menutup, ghost hilang
+ *    ↓
+ *  IDLE                  — amplop tertutup, user bisa buka lagi
  */
 
 const PHASE = {
-  IDLE:       0,
-  OPENING:    1,
-  PEEKING:    2,
-  FLYING:     3,
-  FULLSCREEN: 4,
-  RETURNING:  5,   // overlay terbang turun ke amplop
-  ENTERING:   6,   // kartu masuk ke dalam amplop dari atas
+  IDLE:         0,
+  OPENING:      1,
+  PEEKING:      2,
+  FLYING:       3,
+  FULLSCREEN:   4,
+  RETURNING:    5,
+  ABOVE_FLAP:   6,
+  ENTERING:     7,
+  CLOSING_FLAP: 8,
 }
 
 const MemoCard = memo(GreetingCard)
@@ -37,8 +43,8 @@ const Envelope = ({
   onSave,
 }) => {
   const [phase, setPhase] = useState(PHASE.IDLE)
-  const timers    = useRef([])
-  const phaseRef  = useRef(PHASE.IDLE)
+  const timers   = useRef([])
+  const phaseRef = useRef(PHASE.IDLE)
 
   useEffect(() => { phaseRef.current = phase }, [phase])
 
@@ -49,92 +55,84 @@ const Envelope = ({
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
-  // Buka amplop
+  // ── Buka amplop ──
   useEffect(() => {
     if (!envelopeOpen || phaseRef.current !== PHASE.IDLE) return
     setPhase(PHASE.OPENING)
     go(PHASE.PEEKING, 860)
   }, [envelopeOpen, go])
 
-  // Buka kartu fullscreen
+  // ── Buka kartu fullscreen ──
   useEffect(() => {
     if (!cardViewing || phaseRef.current !== PHASE.PEEKING) return
     setPhase(PHASE.FLYING)
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // Tutup kartu → terbang ke amplop → masuk → peek
+  // ── Tutup kartu → ghost masuk amplop → flap tutup → IDLE ──
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
-    // 1. Overlay terbang turun ke amplop
+    const T0 = 350   // overlay fade out
+    const T1 = 250   // ghost hover di atas flap
+    const T2 = 620   // ghost masuk amplop
+    const T3 = 680   // flap menutup
     setPhase(PHASE.RETURNING)
-    // 2. Kartu masuk dari atas ke dalam amplop
-    go(PHASE.ENTERING, 550)
-    // 3. Kartu kembali ke posisi peek
-    go(PHASE.PEEKING, 550 + 700)
+    go(PHASE.ABOVE_FLAP,   T0)
+    go(PHASE.ENTERING,     T0 + T1)
+    go(PHASE.CLOSING_FLAP, T0 + T1 + T2)
+    go(PHASE.IDLE,         T0 + T1 + T2 + T3)
   }, [cardViewing, go])
 
   const is    = p       => phase === p
   const isAny = (...ps) => ps.includes(phase)
 
-  const flapOpen   = phase >= PHASE.OPENING
-  const sealGone   = phase >= PHASE.OPENING
-  const insideShow = phase >= PHASE.OPENING
+  // Flap terbuka dari OPENING sampai sebelum CLOSING_FLAP
+  const flapOpen   = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
+  const sealGone   = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
+  const insideShow = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
 
-  // ── Posisi kartu di dalam amplop ──
-  // RETURNING  : kartu ditempatkan di -10% (tepat di atas bukaan), tanpa transisi → siap masuk
-  // ENTERING   : kartu meluncur dari -10% ke 110% (masuk ke dalam amplop)
-  // PEEKING    : kartu naik kembali ke 5% (posisi peek normal)
+  // ── Kartu di dalam amplop (overflow:hidden) ──
+  // Hanya terlihat saat PEEKING (naik ke 5%) dan FLYING/FULLSCREEN (tetap, opacity 0)
   const cardInsideTop = (() => {
     switch (phase) {
-      case PHASE.IDLE:
-      case PHASE.OPENING:    return '110%'
       case PHASE.PEEKING:    return '5%'
       case PHASE.FLYING:
       case PHASE.FULLSCREEN: return '5%'
-      case PHASE.RETURNING:  return '-10%'   // posisi awal masuk — di atas bukaan
-      case PHASE.ENTERING:   return '110%'   // meluncur masuk ke dalam
       default:               return '110%'
     }
   })()
+  const cardInsideOpacity   = isAny(PHASE.PEEKING) ? 1 : 0
+  const cardInsideTransition = isAny(PHASE.IDLE, PHASE.OPENING)
+    ? 'top 0s, opacity 0s'
+    : isAny(PHASE.PEEKING)
+      ? 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
+      : 'top 0s, opacity 0.2s ease'
+  const cardClickable = is(PHASE.PEEKING)
 
-  const cardInsideTransition = (() => {
-    if (isAny(PHASE.IDLE, PHASE.OPENING, PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)) {
-      return 'top 0s, opacity 0.3s ease'        // RETURNING: langsung pindah ke -10% (no anim)
-    }
-    if (is(PHASE.ENTERING)) {
-      return 'top 0.65s cubic-bezier(0.4,0,0.8,1), opacity 0.25s ease'   // meluncur masuk
-    }
-    // PEEKING: naik dengan spring
-    return 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
-  })()
+  // ── Ghost card di luar overflow:hidden — hover di atas flap lalu masuk ──
+  // Diposisikan dengan bottom:100% (bawah ghost = atas amplop)
+  // z:9 → saat ghost mulai memasuki area amplop, ditutup oleh envelope body (z:10) ✓
+  const showGhost = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING)
+  const ghostTransform = is(PHASE.ENTERING)
+    ? 'translateY(62%) translateZ(0)'
+    : 'translateY(0) translateZ(0)'
+  const ghostOpacity = is(PHASE.ENTERING) ? 0 : 1
+  const ghostTransition = is(PHASE.ENTERING)
+    ? 'transform 0.62s cubic-bezier(0.55,0,0.75,1), opacity 0.5s ease 0.12s'
+    : 'opacity 0.22s ease'
 
-  const cardInsideOpacity = isAny(PHASE.PEEKING, PHASE.ENTERING) ? 1 : 0
-  const cardClickable     = is(PHASE.PEEKING)
-
+  // ── Overlay ──
   const overlayVisible = isAny(PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING)
   const overlayFull    = is(PHASE.FULLSCREEN)
-
-  // Overlay card bergerak: saat RETURNING, mengecil dan terbang ke bawah (arah amplop)
-  const overlayCardTransform = (() => {
-    if (overlayFull)           return 'scale(1) translateY(0) translateZ(0)'
-    if (is(PHASE.RETURNING))   return 'scale(0.32) translateY(60vh) translateZ(0)'
-    if (is(PHASE.FLYING))      return 'scale(0.7) translateY(38vh) translateZ(0)'
-    return 'scale(0.7) translateY(38vh) translateZ(0)'
-  })()
-
-  const overlayCardOpacity = (() => {
-    if (overlayFull)          return 1
-    if (is(PHASE.RETURNING))  return 0    // fade out sambil terbang
-    return 0
-  })()
-
-  const overlayCardTransition = (() => {
-    if (is(PHASE.RETURNING)) {
-      return 'transform 0.52s cubic-bezier(0.4,0,0.6,1), opacity 0.35s ease 0.15s'
-    }
-    return 'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease'
-  })()
+  const overlayCardTransform = overlayFull
+    ? 'scale(1) translateY(0) translateZ(0)'
+    : is(PHASE.FLYING)
+      ? 'scale(0.7) translateY(38vh) translateZ(0)'
+      : 'scale(0.55) translateY(28vh) translateZ(0)'  // RETURNING: mengecil di tengah
+  const overlayCardOpacity   = overlayFull ? 1 : 0
+  const overlayCardTransition = is(PHASE.RETURNING)
+    ? 'transform 0.32s cubic-bezier(0.4,0,1,1), opacity 0.28s ease'
+    : 'transform 0.5s cubic-bezier(0.22,1,0.36,1), opacity 0.38s ease'
 
   return (
     <>
@@ -149,44 +147,37 @@ const Envelope = ({
         transition:     'background 0.4s ease, backdrop-filter 0.4s ease',
         visibility:     overlayVisible ? 'visible' : 'hidden',
         pointerEvents:  overlayFull ? 'auto' : 'none',
-        willChange:     'background',
       }}>
         {/* Kartu fullscreen */}
         <div style={{
-          width:        'min(520px, 92vw)',
-          maxHeight:    '88dvh',
-          overflowY:    overlayFull ? 'auto' : 'hidden',
-          borderRadius: '16px',
-          transform:    overlayCardTransform,
-          opacity:      overlayCardOpacity,
-          transition:   overlayCardTransition,
-          willChange:   'transform, opacity',
+          width:         'min(520px, 92vw)',
+          maxHeight:     '88dvh',
+          overflowY:     overlayFull ? 'auto' : 'hidden',
+          borderRadius:  '16px',
+          transform:     overlayCardTransform,
+          opacity:       overlayCardOpacity,
+          transition:    overlayCardTransition,
+          willChange:    'transform, opacity',
           pointerEvents: overlayFull ? 'auto' : 'none',
         }}>
           <MemoCard t={t} />
         </div>
 
-        {/* ── Close — KIRI atas ── */}
+        {/* ── Close button ── */}
         <button
           onClick={onCloseCard}
           style={{
-            position:       'fixed',
-            top:            '18px',
-            left:           '18px',
-            width:          '44px',
-            height:         '44px',
-            borderRadius:   '50%',
-            background:     'rgba(201,148,26,0.12)',
-            border:         '1.5px solid rgba(201,148,26,0.4)',
-            color:          '#E8B84B',
-            cursor:         'pointer',
-            display:        'flex', alignItems: 'center', justifyContent: 'center',
-            opacity:        overlayFull ? 1 : 0,
-            transform:      overlayFull ? 'scale(1) translateZ(0)' : 'scale(0.75) translateZ(0)',
-            transition:     'opacity 0.22s ease 0.28s, transform 0.22s ease 0.28s, background 0.18s',
-            pointerEvents:  overlayFull ? 'auto' : 'none',
-            zIndex:         60,
-            willChange:     'opacity, transform',
+            position:      'fixed', top: '18px', left: '18px',
+            width: '44px', height: '44px', borderRadius: '50%',
+            background:    'rgba(201,148,26,0.12)',
+            border:        '1.5px solid rgba(201,148,26,0.4)',
+            color:         '#E8B84B', cursor: 'pointer',
+            display:       'flex', alignItems: 'center', justifyContent: 'center',
+            opacity:       overlayFull ? 1 : 0,
+            transform:     overlayFull ? 'scale(1)' : 'scale(0.75)',
+            transition:    'opacity 0.22s ease 0.28s, transform 0.22s ease 0.28s, background 0.18s',
+            pointerEvents: overlayFull ? 'auto' : 'none',
+            zIndex: 60,
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(201,148,26,0.3)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(201,148,26,0.12)' }}
@@ -201,13 +192,13 @@ const Envelope = ({
         <div style={{
           position:      'fixed', bottom: '28px', left: '50%',
           transform:     overlayFull
-            ? 'translateX(-50%) translateY(0) translateZ(0)'
-            : 'translateX(-50%) translateY(14px) translateZ(0)',
+            ? 'translateX(-50%) translateY(0)'
+            : 'translateX(-50%) translateY(14px)',
           display:       'flex', gap: '10px',
           opacity:       overlayFull ? 1 : 0,
           transition:    'opacity 0.25s ease 0.32s, transform 0.25s ease 0.32s',
           pointerEvents: overlayFull ? 'auto' : 'none',
-          zIndex:        60, willChange: 'opacity, transform',
+          zIndex: 60,
         }}>
           <button onClick={onShare}
             className="btn-gold flex items-center gap-2 font-poppins font-bold uppercase rounded-lg"
@@ -239,6 +230,29 @@ const Envelope = ({
       ══════════════════════════════════════════════ */}
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
+        {/* ── GHOST CARD ──
+         * Diposisikan di LUAR overflow:hidden (sibling dari envelope body).
+         * bottom:100% → bawah ghost sejajar atas amplop (bukaan flap).
+         * z:9 → saat ghost turun memasuki area envelope body (z:10),
+         *        envelope body menutupi ghost secara alami. ✓
+         */}
+        {showGhost && (
+          <div style={{
+            position:   'absolute',
+            left: '5%', right: '5%',
+            bottom:     '100%',
+            zIndex:     9,
+            transform:  ghostTransform,
+            opacity:    ghostOpacity,
+            transition: ghostTransition,
+            willChange: 'transform, opacity',
+            filter:     'drop-shadow(0 -6px 28px rgba(0,0,0,0.55))',
+            pointerEvents: 'none',
+          }}>
+            <MemoCard t={t} />
+          </div>
+        )}
+
         {/* ── ENVELOPE BODY ── */}
         <div
           className={`relative select-none ${is(PHASE.IDLE) ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
@@ -251,10 +265,9 @@ const Envelope = ({
             zIndex:       10,
           }}
         >
-          {/* ── KARTU DI DALAM AMPLOP ── */}
+          {/* ── KARTU DI DALAM AMPLOP (overflow:hidden) ── */}
           <div style={{
-            position:      'absolute',
-            inset:         0,
+            position:      'absolute', inset: 0,
             overflow:      'hidden',
             zIndex:        3,
             pointerEvents: 'none',
@@ -264,8 +277,7 @@ const Envelope = ({
               onClick={cardClickable ? onViewCard : undefined}
               style={{
                 position:      'absolute',
-                left:          '5%',
-                right:         '5%',
+                left: '5%', right: '5%',
                 top:           cardInsideTop,
                 pointerEvents: cardClickable ? 'auto' : 'none',
                 cursor:        cardClickable ? 'pointer' : 'default',
@@ -286,7 +298,7 @@ const Envelope = ({
             background:'linear-gradient(180deg,#EACA6C 0%,#B8902A 100%)',
             opacity:    insideShow ? 1 : 0,
             transition: 'opacity 0.45s ease 0.35s',
-            pointerEvents: 'none', willChange: 'opacity',
+            pointerEvents:'none',
           }}/>
 
           {/* Islamic pattern */}
@@ -303,14 +315,14 @@ const Envelope = ({
 
           {/* Left fold */}
           <div className="absolute bottom-0 left-0 pointer-events-none" style={{
-            zIndex:4, width:'52%', height:'56%',
+            zIndex:4, width:'50%', height:'46%',
             background:'linear-gradient(138deg,#C8AA60 0%,#9A7830 100%)',
             clipPath:'polygon(0 100%,0 0,100% 100%)',
           }}/>
 
           {/* Right fold */}
           <div className="absolute bottom-0 right-0 pointer-events-none" style={{
-            zIndex:4, width:'52%', height:'56%',
+            zIndex:4, width:'50%', height:'46%',
             background:'linear-gradient(222deg,#C8AA60 0%,#9A7830 100%)',
             clipPath:'polygon(100% 100%,100% 0,0 100%)',
           }}/>
@@ -330,8 +342,8 @@ const Envelope = ({
               : 'rotateX(0deg) translateZ(0)',
             transition:      flapOpen
               ? 'transform 0.72s cubic-bezier(0.4,0,0.2,1)'
-              : 'transform 0.6s cubic-bezier(0.4,0,0.2,1) 0.12s',
-            willChange:      'transform', pointerEvents: 'none',
+              : 'transform 0.65s cubic-bezier(0.4,0,0.2,1)',
+            willChange:'transform', pointerEvents:'none',
           }}>
             <div style={{ position:'absolute', bottom:0, left:'25%', right:'25%', height:'1px', background:'rgba(0,0,0,0.12)' }}/>
             <div style={{ position:'absolute', top:'8px', left:'33%', right:'33%', height:'1px', background:'rgba(255,255,255,0.18)' }}/>
@@ -341,11 +353,10 @@ const Envelope = ({
           <div style={{
             position:'absolute', top:'50%', left:'50%', zIndex:6,
             transform:  sealGone
-              ? 'translate(-50%,-50%) scale(0) rotate(30deg) translateZ(0)'
-              : 'translate(-50%,-50%) scale(1) rotate(0deg) translateZ(0)',
+              ? 'translate(-50%,-50%) scale(0) rotate(30deg)'
+              : 'translate(-50%,-50%) scale(1) rotate(0deg)',
             opacity:    sealGone ? 0 : 1,
             transition: 'transform 0.4s ease, opacity 0.35s ease',
-            willChange: 'transform, opacity',
           }}>
             <WaxSeal />
           </div>
@@ -356,7 +367,7 @@ const Envelope = ({
             display:'flex', justifyContent:'center',
             opacity:    sealGone ? 0 : 1,
             transition: 'opacity 0.28s ease',
-            pointerEvents:'none', willChange:'opacity',
+            pointerEvents:'none',
           }}>
             <span className="font-amiri" style={{
               direction:'rtl', color:'rgba(70,40,0,0.45)',
@@ -367,11 +378,9 @@ const Envelope = ({
 
         {/* ── HINT teks ── */}
         <div style={{
-          position:      'absolute',
-          top:           '-28px',
-          left:          0, right: 0,
-          display:       'flex', justifyContent: 'center',
-          zIndex:        30, pointerEvents: 'none',
+          position:   'absolute', top: '-28px', left:0, right:0,
+          display:    'flex', justifyContent:'center',
+          zIndex:     30, pointerEvents:'none',
         }}>
           <span style={{
             fontFamily:    'Poppins,sans-serif',
