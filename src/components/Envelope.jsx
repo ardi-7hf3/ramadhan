@@ -131,7 +131,7 @@ const Envelope = ({
       case PHASE.CLOSING_FLAP:
         return '5%'
       case PHASE.ABOVE_FLAP:
-        return '-110%'        // tersembunyi di atas (snap instan)
+        return '-85%'         // kartu tepat di atas bukaan amplop (snap instan)
       default:
         return '110%'         // tersembunyi di bawah saat IDLE/OPENING
     }
@@ -294,8 +294,8 @@ const Envelope = ({
           <div style={{
             position:      'absolute', inset: 0,
             overflow:      'hidden',
-            // z:16 saat ENTERING → di atas flap (z:15), kartu terlihat saat meluncur
-            // z:3  saat ENTERED+ → kartu sudah cukup masuk, flap boleh menutup di atasnya
+            // ENTERING : z:16 → di atas flap (z:15), kartu terlihat saat meluncur masuk
+            // ENTERED+ : z:3  → bottom fold & flap menutup kartu secara alami
             zIndex:        is(PHASE.ENTERING) ? 16 : 3,
             pointerEvents: 'none',
             borderRadius:  'inherit',
@@ -340,9 +340,10 @@ const Envelope = ({
             background:'linear-gradient(90deg,rgba(0,0,0,0.09) 0%,transparent 16%,transparent 84%,rgba(0,0,0,0.09) 100%)',
           }}/>
 
-          {/* Bottom fold pentagon — z:4 */}
+          {/* Bottom fold pentagon — z:17 saat ENTERING agar menutupi bagian bawah kartu
+           * (inside card container z:16), z:4 di fase lain */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            zIndex:4,
+            zIndex: is(PHASE.ENTERING) ? 17 : 4,
             background:'linear-gradient(160deg,#B8902A 0%,#C8AA60 30%,#B0882A 50%,#C8AA60 70%,#B8902A 100%)',
             clipPath:'polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%)',
           }}/>
