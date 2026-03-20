@@ -34,8 +34,9 @@ const PHASE = {
   FULLSCREEN:   4,
   RETURNING:    5,
   ABOVE_FLAP:   6,
-  ENTERING:     7,
-  CLOSING_FLAP: 8,
+  ENTERING:     7,  // z:16 kartu terlihat di atas flap
+  ENTERED:      8,  // z:3  kartu sudah cukup masuk, flap boleh menutup
+  CLOSING_FLAP: 9,
 }
 
 const MemoCard = memo(GreetingCard)
@@ -82,12 +83,14 @@ const Envelope = ({
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     const T0 = 300   // overlay fade out
-    const T1 = 400   // snap inside card ke atas (top:-110%), tidak perlu lama
-    const T2 = 700   // slide inside card dari atas turun ke peek (top:5%)
-    const T3 = 650   // flap menutup dari atas
+    const T1 = 400   // snap inside card ke atas (top:-110%)
+    const T2 = 700   // total durasi slide kartu masuk
+    const T2h = 360  // setengah T2: kartu sudah cukup masuk → turunkan z ke 3
+    const T3 = 650   // flap menutup
     setPhase(PHASE.RETURNING)
     go(PHASE.ABOVE_FLAP,   T0)
     go(PHASE.ENTERING,     T0 + T1)
+    go(PHASE.ENTERED,      T0 + T1 + T2h)
     go(PHASE.CLOSING_FLAP, T0 + T1 + T2)
     go(PHASE.IDLE,         T0 + T1 + T2 + T3)
     const doneId = setTimeout(() => {
@@ -102,7 +105,7 @@ const Envelope = ({
   const flapOpen = isAny(
     PHASE.OPENING, PHASE.PEEKING, PHASE.FLYING,
     PHASE.FULLSCREEN, PHASE.RETURNING,
-    PHASE.ABOVE_FLAP, PHASE.ENTERING
+    PHASE.ABOVE_FLAP, PHASE.ENTERING, PHASE.ENTERED
   )
   const sealGone   = !is(PHASE.IDLE)
   const insideShow = !is(PHASE.IDLE)
@@ -124,6 +127,7 @@ const Envelope = ({
       case PHASE.FLYING:
       case PHASE.FULLSCREEN:
       case PHASE.ENTERING:    // target posisi, dicapai via transition
+      case PHASE.ENTERED:
       case PHASE.CLOSING_FLAP:
         return '5%'
       case PHASE.ABOVE_FLAP:
@@ -290,8 +294,8 @@ const Envelope = ({
           <div style={{
             position:      'absolute', inset: 0,
             overflow:      'hidden',
-            // z:16 saat ENTERING → di atas flap (z:15), kartu terlihat saat masuk
-            // z:3  saat lainnya  → flap bisa menutup di atasnya
+            // z:16 saat ENTERING → di atas flap (z:15), kartu terlihat saat meluncur
+            // z:3  saat ENTERED+ → kartu sudah cukup masuk, flap boleh menutup di atasnya
             zIndex:        is(PHASE.ENTERING) ? 16 : 3,
             pointerEvents: 'none',
             borderRadius:  'inherit',
