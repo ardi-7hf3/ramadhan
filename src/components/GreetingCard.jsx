@@ -164,7 +164,7 @@ const GreetingCard = ({ t, visible }) => (
       </div>
 
       {/* ── 7. Main heading ── */}
-      <div className="text-center mb-2">
+      <div className="text-center mb-3">
         <h1 className="font-poppins font-black gold-shimmer-text leading-none tracking-tight"
           style={{ fontSize: 'clamp(1.7rem, 7.5vw, 3.6rem)' }}>
           {t.line1}
@@ -173,6 +173,31 @@ const GreetingCard = ({ t, visible }) => (
           style={{ fontSize: 'clamp(0.95rem, 4vw, 1.85rem)', color: '#0F7A6B' }}>
           {t.line2}
         </h2>
+
+        {/* Arabic calligraphy of the greeting */}
+        <div
+          className="font-amiri mt-2"
+          style={{
+            direction:     'rtl',
+            fontSize:      'clamp(1.1rem, 4.5vw, 1.75rem)',
+            color:         '#B8840E',
+            letterSpacing: '3px',
+            lineHeight:    1.6,
+            textShadow:    '0 1px 8px rgba(201,148,26,0.25)',
+          }}
+        >
+          مِنَ الْعَائِدِيْنَ وَالْفَائِزِيْنَ
+        </div>
+        <p
+          className="font-poppins italic mt-0.5"
+          style={{
+            fontSize:      'clamp(0.55rem, 1.6vw, 0.65rem)',
+            color:         'rgba(46,32,10,0.45)',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {t.arabicGreetingSub}
+        </p>
       </div>
 
       {/* ── 8. Sub pill ── */}
