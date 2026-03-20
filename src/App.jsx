@@ -64,6 +64,7 @@ const App = () => {
       {/* ══ MAIN SCENE ══ */}
       <main
         className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-20"
+        style={{ overflow: 'visible' }}
       >
 
         {/* Hint text — visible before open */}

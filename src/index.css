@@ -102,12 +102,18 @@ body {
 ═══════════════════════════════════════════ */
 .card-peek {
   transition:
-    bottom 1s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.5s ease 0.45s;
+    bottom   1s    cubic-bezier(0.22, 1, 0.36, 1),
+    opacity  0.55s ease 0.4s;
+  /* overflow visible so card shadow/content isn't clipped */
+  overflow:     visible;
+  /* start hidden beneath envelope lip */
+  will-change:  bottom, opacity;
 }
 .card-visible {
-  bottom: calc(100% + 20px) !important;
-  opacity: 1 !important;
+  bottom:        calc(100% + 24px) !important;
+  opacity:       1 !important;
+  /* pointer-events set imperatively in JS, but ensure it's enabled */
+  pointer-events: auto !important;
 }
 
 /* ═══════════════════════════════════════════
