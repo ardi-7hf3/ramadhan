@@ -67,33 +67,7 @@ const GreetingCard = ({ t }) => (
     <div className="relative z-10"
       style={{ padding: 'clamp(16px, 5vw, 44px) clamp(14px, 4.5vw, 40px)' }}>
 
-      {/* ── 1. Logos row (tanpa label teks) ── */}
-      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-3">
-        <LogoCircle src="/mpk.png" alt="MPK"
-          fallbackIcon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-          }
-        />
-        <LogoCircle src="/smantas.png" alt="SMAN 13" size="lg"
-          fallbackIcon={
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            </svg>
-          }
-        />
-        <LogoCircle src="/osis.png" alt="OSIS"
-          fallbackIcon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
-              <circle cx="12" cy="8" r="4"/>
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>
-          }
-        />
-      </div>
-
-      {/* ── 2. Top divider ── */}
+      {/* ── 1. Top divider ── */}
       <GeomDivider />
 
       {/* ── 3. Arabic text ── */}
@@ -209,11 +183,7 @@ const GreetingCard = ({ t }) => (
         </p>
         <p className="font-poppins font-black"
           style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)', color: '#C9941A' }}>
-          MPK &amp; OSIS
-        </p>
-        <p className="font-poppins font-bold uppercase mt-0.5"
-          style={{ fontSize: 'clamp(0.6rem, 1.8vw, 0.72rem)', color: '#0F7A6B', letterSpacing: '0.5px' }}>
-          SMA Negeri 13 Pontianak
+          Azril Ardiansyah Febriyanto
         </p>
       </div>
 
