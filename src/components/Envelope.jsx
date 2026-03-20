@@ -71,14 +71,15 @@ const Envelope = ({
 
   // ── Tutup kartu ──
   // RETURNING   : overlay fade out
-  // ABOVE_FLAP  : stage card muncul di atas amplop, bagian bawah sejajar titik ^ flap
-  // ENTERING    : stage card turun + fade; inside card mulai spring dari 110% ke 5%
-  // PEEKING     : selesai — posisi sama dengan awal amplop dibuka
+  // ABOVE_FLAP  : stage card (z:9) muncul di atas amplop, bottom sejajar titik ^ flap
+  // ENTERING    : stage card slide ke bawah → envelope body (z:10) menutupinya secara alami
+  //               bersamaan, inside card spring dari 110% ke 5% (peek)
+  // PEEKING     : selesai
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     const T0 = 300   // overlay fade out
-    const T1 = 280   // stage card diam sejenak di atas flap
-    const T2 = 950   // inside card spring ke peek (ENTERING → PEEKING)
+    const T1 = 320   // stage card diam di atas flap
+    const T2 = 750   // durasi slide masuk + spring peek
     setPhase(PHASE.RETURNING)
     go(PHASE.ABOVE_FLAP, T0)
     go(PHASE.ENTERING,   T0 + T1)
@@ -92,32 +93,23 @@ const Envelope = ({
   const sealGone   = phase >= PHASE.OPENING
   const insideShow = phase >= PHASE.OPENING
 
-  // ── Stage card (di luar overflow:hidden, di atas semua elemen) ──
-  // Diposisikan absolute dalam scene wrapper.
-  // bottom: 46% → bawah kartu sejajar titik ^ flap (flap tip = 54% dari atas = 46% dari bawah)
-  // ENTERING: slide turun + fade out → crossfade dengan inside card yang naik
+  // ── Stage card ──
+  // z:9 → di bawah envelope body (z:10).
+  // Saat di atas amplop: terlihat penuh (tidak ada yang menutupi).
+  // Saat slide ke bawah memasuki area amplop: envelope body (z:10) menutupinya → efek masuk slot.
+  // bottom:46% → bawah kartu sejajar titik ^ flap (flap tip = 54% dari atas = 46% dari bawah).
   const showStageCard = isAny(PHASE.ABOVE_FLAP, PHASE.ENTERING)
-  const stageCardStyle = {
-    position:   'absolute',
-    left: '5%', right: '5%',
-    bottom:     '46%',          // bawah kartu = titik ^ penutup amplop
-    zIndex:     20,
-    pointerEvents: 'none',
-    filter:     'drop-shadow(0 -8px 28px rgba(0,0,0,0.5))',
-    transform:  is(PHASE.ENTERING)
-      ? 'translateY(30%) translateZ(0)'   // slide turun ke dalam amplop
-      : 'translateY(0) translateZ(0)',
-    opacity:    is(PHASE.ABOVE_FLAP) ? 1 : 0,
-    transition: is(PHASE.ENTERING)
-      ? 'transform 0.55s cubic-bezier(0.55,0,0.8,1), opacity 0.4s ease'
-      : is(PHASE.ABOVE_FLAP)
-        ? 'opacity 0.25s ease'
-        : 'none',
-    willChange: 'transform, opacity',
-  }
+  const stageBottom   = '46%'
+  const stageTransform = is(PHASE.ENTERING)
+    ? 'translateY(58%) translateZ(0)'   // turun masuk ke amplop
+    : 'translateY(0) translateZ(0)'
+  const stageOpacity  = isAny(PHASE.ABOVE_FLAP) ? 1 : 0
+  const stageTrans    = is(PHASE.ENTERING)
+    ? 'transform 0.7s cubic-bezier(0.55,0,0.8,1), opacity 0.25s ease'
+    : 'opacity 0.2s ease'
 
   // ── Inside card (overflow:hidden) ──
-  // Saat ENTERING: langsung di 110% (bawah), spring naik ke 5% saat PEEKING
+  // Saat ENTERING: snap ke 110% (bawah, invisible), lalu spring ke 5% saat PEEKING
   const cardInsideTop = (() => {
     switch (phase) {
       case PHASE.PEEKING:
@@ -126,9 +118,9 @@ const Envelope = ({
       default:               return '110%'
     }
   })()
-  const cardInsideOpacity = is(PHASE.PEEKING) ? 1 : 0
+  const cardInsideOpacity   = is(PHASE.PEEKING) ? 1 : 0
   const cardInsideTransition = is(PHASE.PEEKING)
-    ? 'top 0.9s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease 0.1s'
+    ? 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease 0.05s'
     : 'top 0s, opacity 0s'
   const cardClickable = is(PHASE.PEEKING)
 
@@ -242,12 +234,23 @@ const Envelope = ({
       <div className="relative" style={{ width:'min(448px,92vw)', perspective:'1200px' }}>
 
         {/* ── STAGE CARD ──
-         * Di luar overflow:hidden, di atas semua elemen (z:20).
-         * bottom:46% → bagian bawah kartu sejajar titik ^ penutup amplop.
-         * Saat ENTERING: slide turun + fade out, sementara inside card spring naik.
+         * z:9 → di bawah envelope body (z:10).
+         * Di atas amplop: terlihat penuh. Saat slide masuk area amplop: tertutup secara alami.
+         * bottom:46% → bawah kartu sejajar titik ^ penutup amplop.
          */}
         {showStageCard && (
-          <div style={stageCardStyle}>
+          <div style={{
+            position:      'absolute',
+            left: '5%',    right: '5%',
+            bottom:        stageBottom,
+            zIndex:        9,
+            transform:     stageTransform,
+            opacity:       stageOpacity,
+            transition:    stageTrans,
+            willChange:    'transform, opacity',
+            filter:        'drop-shadow(0 -8px 28px rgba(0,0,0,0.5))',
+            pointerEvents: 'none',
+          }}>
             <MemoCard t={t} />
           </div>
         )}
