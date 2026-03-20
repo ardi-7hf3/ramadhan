@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Eid Mubarak — MPK &amp; OSIS</title>
+
+<!-- Poppins Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Amiri:wght@400;700&display=swap" rel="stylesheet"/>
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        poppins: ['Poppins', 'sans-serif'],
+        amiri:   ['Amiri', 'serif'],
+      },
+      colors: {
+        gold:    { DEFAULT:'#C9941A', mid:'#E8B84B', hi:'#F5D87A', pale:'#FDF3DC', dark:'#8B6310' },
+        teal:    { DEFAULT:'#0F7A6B', mid:'#12A08E', hi:'#3ECBB8', dark:'#074E45' },
+        navy:    { DEFAULT:'#070E1C', mid:'#0D1830', light:'#13254A' },
+        ink:     { DEFAULT:'#1A1005', mid:'#2E200A', light:'#4A3520' },
+        cream:   { DEFAULT:'#FAF2E0', mid:'#F0E4C4', dark:'#D4C090' },
+        env:     { body:'#C4A15A', dark:'#9A7830', light:'#DEC07A', flap:'#B59040' },
+        seal:    { DEFAULT:'#7A1515', mid:'#A01E1E' },
+      },
+      boxShadow: {
+        'gold-glow': '0 0 40px rgba(201,148,26,0.35), 0 0 80px rgba(201,148,26,0.1)',
+        'card':      '0 32px 80px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35)',
+        'envelope':  '0 24px 60px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
+        'inset-paper':'inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(0,0,0,0.04)',
+      },
+      animation: {
+        'spin-slow':    'spin 5s linear infinite',
+        'float':        'float 3s ease-in-out infinite',
+        'pulse-gold':   'pulseGold 2.5s ease-in-out infinite',
+        'shimmer':      'shimmer 2.2s ease-in-out infinite alternate',
+        'bar-fill':     'barFill 2.6s ease forwards',
+        'fade-up':      'fadeUp 0.7s ease both',
+        'scale-in':     'scaleIn 0.5s cubic-bezier(0.22,1,0.36,1) both',
+        'slide-up':     'slideUp 0.9s cubic-bezier(0.22,1,0.36,1) both',
+        'swing':        'swing 2.2s ease-in-out infinite',
+        'star-twinkle': 'starTwinkle 1.8s ease-in-out infinite',
+        'lang-in':      'langIn 0.35s ease both',
+      },
+      keyframes: {
+        float:       { '0%,100%':{ transform:'translateY(0)' }, '50%':{ transform:'translateY(-8px)' } },
+        pulseGold:   { '0%,100%':{ boxShadow:'0 0 0 0 rgba(201,148,26,0.4)' }, '50%':{ boxShadow:'0 0 0 14px rgba(201,148,26,0)' } },
+        shimmer:     { 'from':{ opacity:'0.5', transform:'scale(0.97)' }, 'to':{ opacity:'1', transform:'scale(1)' } },
+        barFill:     { 'to':{ width:'100%' } },
+        fadeUp:      { 'from':{ opacity:'0', transform:'translateY(20px)' }, 'to':{ opacity:'1', transform:'translateY(0)' } },
+        scaleIn:     { 'from':{ opacity:'0', transform:'scale(0.88)' }, 'to':{ opacity:'1', transform:'scale(1)' } },
+        slideUp:     { 'from':{ transform:'translateY(60px)', opacity:'0' }, 'to':{ transform:'translateY(0)', opacity:'1' } },
+        swing:       { '0%,100%':{ transform:'rotate(-9deg) translateY(0)' }, '50%':{ transform:'rotate(9deg) translateY(-4px)' } },
+        starTwinkle: { '0%,100%':{ opacity:'0.2', transform:'scale(0.8)' }, '50%':{ opacity:'1', transform:'scale(1)' } },
+        langIn:      { 'from':{ opacity:'0', transform:'translateY(8px)' }, 'to':{ opacity:'1', transform:'translateY(0)' } },
+      },
+    }
+  }
+}
+</script>
+
+<!-- React + ReactDOM + Babel CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  /* ── base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #070E1C;
+    overflow-x: hidden;
+  }
+
+  /* ── custom scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0D1830; }
+  ::-webkit-scrollbar-thumb { background: #C9941A44; border-radius: 4px; }
+
+  /* ── loader bar ── */
+  @keyframes barFill { to { width: 100%; } }
+  .bar-fill { animation: barFill 2.6s ease forwards; }
+
+  /* ── starfield ── */
+  @keyframes starFloat {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    5%   { opacity: 0.7; }
+    95%  { opacity: 0.4; }
+    100% { transform: translateY(-110vh) rotate(720deg); opacity: 0; }
+  }
+  .star-particle { animation: starFloat linear infinite; position: absolute; border-radius: 50%; }
+
+  /* ── envelope flap animation ── */
+  .env-flap {
+    transform-style: preserve-3d;
+    transform-origin: top center;
+    transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .flap-open { transform: rotateX(-185deg); }
+
+  /* ── seal dissolve ── */
+  .seal-wrap { transition: transform 0.5s ease, opacity 0.4s ease; }
+  .seal-gone { transform: scale(0) rotate(30deg); opacity: 0; }
+
+  /* ── card slide up ── */
+  .card-peek {
+    transition: bottom 1s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease 0.5s;
+  }
+  .card-visible { bottom: calc(100% + 20px) !important; opacity: 1 !important; }
+
+  /* ── inside envelope revealed ── */
+  .env-inside { transition: opacity 0.4s ease 0.5s; }
+  .inside-show { opacity: 1 !important; }
+
+  /* ── paper texture lines ── */
+  .paper-lines {
+    background-image: repeating-linear-gradient(
+      transparent 0px, transparent 29px,
+      rgba(160,120,40,0.07) 30px
+    );
+  }
+
+  /* ── gold shimmer text ── */
+  @keyframes goldShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .gold-shimmer-text {
+    background: linear-gradient(
+      90deg,
+      #8B6310 0%, #C9941A 20%, #F5D87A 40%,
+      #E8B84B 60%, #C9941A 80%, #8B6310 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: goldShimmer 4s linear infinite;
+  }
+
+  /* ── geometric ornament line ── */
+  .ornament-line {
+    display: flex; align-items: center; gap: 10px;
+    margin: 10px 0;
+  }
+  .ornament-line::before,
+  .ornament-line::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,148,26,0.4), transparent);
+  }
+
+  /* ── card reveal stagger ── */
+  .reveal > * { opacity: 0; animation: fadeUp 0.6s ease both; }
+  .reveal > *:nth-child(1)  { animation-delay: 0.05s; }
+  .reveal > *:nth-child(2)  { animation-delay: 0.15s; }
+  .reveal > *:nth-child(3)  { animation-delay: 0.25s; }
+  .reveal > *:nth-child(4)  { animation-delay: 0.35s; }
+  .reveal > *:nth-child(5)  { animation-delay: 0.45s; }
+  .reveal > *:nth-child(6)  { animation-delay: 0.55s; }
+  .reveal > *:nth-child(7)  { animation-delay: 0.65s; }
+  .reveal > *:nth-child(8)  { animation-delay: 0.75s; }
+  .reveal > *:nth-child(9)  { animation-delay: 0.85s; }
+  .reveal > *:nth-child(10) { animation-delay: 0.95s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── lantern swing ── */
+  @keyframes lanternSwing {
+    0%,100% { transform: rotate(-10deg); }
+    50%      { transform: rotate(10deg) translateY(-4px); }
+  }
+  .lantern-1 { animation: lanternSwing 2.4s ease-in-out infinite; }
+  .lantern-2 { animation: lanternSwing 2.0s ease-in-out infinite 0.3s reverse; }
+  .lantern-3 { animation: lanternSwing 2.6s ease-in-out infinite 0.6s; }
+
+  /* ── wish card hover ── */
+  .wish-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .wish-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(201,148,26,0.15);
+    border-color: rgba(201,148,26,0.4);
+  }
+
+  /* ── button effects ── */
+  .btn-gold {
+    background: linear-gradient(135deg, #C9941A 0%, #E8B84B 50%, #C9941A 100%);
+    background-size: 200% auto;
+    transition: background-position 0.4s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-gold:hover {
+    background-position: right center;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(201,148,26,0.5);
+  }
+  .btn-teal {
+    transition: all 0.2s ease;
+  }
+  .btn-teal:hover {
+    background: rgba(15,122,107,0.12);
+    border-color: rgba(62,203,184,0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15,122,107,0.2);
+  }
+
+  /* ── hint bounce ── */
+  @keyframes hintBounce {
+    0%,100% { transform: translateY(0); opacity: 0.7; }
+    50%      { transform: translateY(-6px); opacity: 1; }
+  }
+  .hint-anim { animation: hintBounce 2s ease-in-out infinite; }
+
+  /* ── cta pulse ── */
+  @keyframes ctaPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(201,148,26,0.35); }
+    50%      { box-shadow: 0 0 0 12px rgba(201,148,26,0); }
+  }
+  .cta-pulse { animation: ctaPulse 2.2s ease-in-out infinite; }
+
+  /* ── moon glow ── */
+  @keyframes moonGlow {
+    0%,100% { filter: drop-shadow(0 0 10px rgba(201,148,26,0.5)); }
+    50%      { filter: drop-shadow(0 0 28px rgba(245,216,122,0.85)); }
+  }
+  .moon-glow { animation: moonGlow 3s ease-in-out infinite; }
+
+  /* ── toast ── */
+  .toast-slide { transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ════════════════════════════════════
+   SVG COMPONENTS
+════════════════════════════════════ */
+
+const CrescentMoon = ({ size = 80, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <defs>
+      <radialGradient id="moonGrad" cx="35%" cy="30%">
+        <stop offset="0%" stopColor="#F5D87A"/>
+        <stop offset="100%" stopColor="#C9941A"/>
+      </radialGradient>
+      <filter id="moonFilter">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <path
+      d="M40 8 A32 32 0 1 1 39.9 8 A20 20 0 1 0 40 8 Z"
+      fill="url(#moonGrad)"
+      transform="rotate(20 40 40)"
+      filter="url(#moonFilter)"
+    />
+    <path d="M56 18 L57.8 23.4 L63.4 23.4 L59 26.7 L60.8 32.1 L56 28.8 L51.2 32.1 L53 26.7 L48.6 23.4 L54.2 23.4 Z"
+      fill="#F5D87A" opacity="0.9"/>
+    <path d="M66 10 L66.9 12.8 L69.8 12.8 L67.5 14.5 L68.4 17.3 L66 15.6 L63.6 17.3 L64.5 14.5 L62.2 12.8 L65.1 12.8 Z"
+      fill="#E8B84B" opacity="0.75"/>
+  </svg>
+);
+
+const MosqueSVG = ({ size = 120 }) => (
+  <svg width={size} height={Math.round(size * 0.7)} viewBox="0 0 160 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="mGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#E8B84B" stopOpacity="0.9"/>
+        <stop offset="100%" stopColor="#C9941A" stopOpacity="0.6"/>
+      </linearGradient>
+    </defs>
+    {/* base platform */}
+    <rect x="0" y="100" width="160" height="12" rx="2" fill="rgba(201,148,26,0.15)" stroke="#C9941A" strokeWidth="0.8"/>
+    {/* main dome structure */}
+    <path d="M50 100 V60 A30 30 0 0 1 110 60 V100Z" fill="rgba(201,148,26,0.08)" stroke="#C9941A" strokeWidth="0.9"/>
+    {/* main dome */}
+    <path d="M50 60 Q80 18 110 60" fill="rgba(201,148,26,0.2)" stroke="#C9941A" strokeWidth="1.2"/>
+    {/* door arch */}
+    <path d="M70 100 V80 Q80 68 90 80 V100Z" fill="rgba(201,148,26,0.15)" stroke="#C9941A" strokeWidth="0.8"/>
+    {/* left minaret */}
+    <rect x="14" y="54" width="10" height="46" rx="2" fill="rgba(201,148,26,0.08)" stroke="#C9941A" strokeWidth="0.8"/>
+    <path d="M14 54 Q19 42 24 54" fill="rgba(201,148,26,0.2)" stroke="#C9941A" strokeWidth="0.9"/>
+    <circle cx="19" cy="41" r="2.5" fill="#E8B84B" stroke="#C9941A" strokeWidth="0.6"/>
+    <line x1="19" y1="38" x2="19" y2="32" stroke="#C9941A" strokeWidth="1" strokeLinecap="round"/>
+    <circle cx="19" cy="31" r="1.5" fill="#F5D87A"/>
+    {/* right minaret */}
+    <rect x="136" y="54" width="10" height="46" rx="2" fill="rgba(201,148,26,0.08)" stroke="#C9941A" strokeWidth="0.8"/>
+    <path d="M136 54 Q141 42 146 54" fill="rgba(201,148,26,0.2)" stroke="#C9941A" strokeWidth="0.9"/>
+    <circle cx="141" cy="41" r="2.5" fill="#E8B84B" stroke="#C9941A" strokeWidth="0.6"/>
+    <line x1="141" y1="38" x2="141" y2="32" stroke="#C9941A" strokeWidth="1" strokeLinecap="round"/>
+    <circle cx="141" cy="31" r="1.5" fill="#F5D87A"/>
+    {/* small side domes */}
+    <path d="M28 88 Q38 72 48 88" fill="rgba(201,148,26,0.15)" stroke="#C9941A" strokeWidth="0.8"/>
+    <path d="M112 88 Q122 72 132 88" fill="rgba(201,148,26,0.15)" stroke="#C9941A" strokeWidth="0.8"/>
+    {/* center finial */}
+    <line x1="80" y1="18" x2="80" y2="8" stroke="#C9941A" strokeWidth="1.2" strokeLinecap="round"/>
+    <circle cx="80" cy="7" r="3" fill="#E8B84B"/>
+    {/* windows */}
+    <ellipse cx="66" cy="78" rx="5" ry="7" fill="none" stroke="#C9941A" strokeWidth="0.7" opacity="0.6"/>
+    <ellipse cx="94" cy="78" rx="5" ry="7" fill="none" stroke="#C9941A" strokeWidth="0.7" opacity="0.6"/>
+  </svg>
+);
+
+const GeomDivider = ({ color = 'rgba(201,148,26,0.3)' }) => (
+  <svg width="100%" height="18" viewBox="0 0 400 18" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line x1="0" y1="9" x2="152" y2="9" stroke={color} strokeWidth="0.8"/>
+    <polygon points="158,9 165,3 172,9 165,15" fill="none" stroke="#C9941A" strokeWidth="0.9"/>
+    <polygon points="176,9 183,3 190,9 183,15" fill="rgba(201,148,26,0.25)" stroke="#C9941A" strokeWidth="0.9"/>
+    <polygon points="194,9 201,3 208,9 201,15" fill="none" stroke="#C9941A" strokeWidth="0.9"/>
+    <line x1="214" y1="9" x2="400" y2="9" stroke={color} strokeWidth="0.8"/>
+  </svg>
+);
+
+const WaxSeal = () => (
+  <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sealGrad" cx="38%" cy="33%">
+        <stop offset="0%" stopColor="#C02020"/>
+        <stop offset="100%" stopColor="#5C0A0A"/>
+      </radialGradient>
+    </defs>
+    <circle cx="36" cy="36" r="32" fill="url(#sealGrad)"/>
+    <circle cx="36" cy="36" r="30" fill="none" stroke="#E03030" strokeWidth="1.2" strokeDasharray="4 3" opacity="0.6"/>
+    <circle cx="36" cy="36" r="23" fill="none" stroke="rgba(255,200,150,0.25)" strokeWidth="0.8"/>
+    <path d="M36 18 L38.4 26 L46.8 23.2 L40.8 29.6 L46.8 36 L38.4 33.2 L36 41.2 L33.6 33.2 L25.2 36 L31.2 29.6 L25.2 23.2 L33.6 26 Z"
+      fill="rgba(255,200,150,0.2)" stroke="rgba(255,200,150,0.45)" strokeWidth="0.8"/>
+    <path d="M36 27 A9 9 0 1 1 35.9 27 A5.5 5.5 0 1 0 36 27 Z"
+      fill="rgba(255,220,150,0.6)" transform="rotate(15 36 36)"/>
+    <text x="36" y="54" textAnchor="middle" fontSize="7" fontFamily="Amiri,serif"
+      fill="rgba(255,220,150,0.7)" letterSpacing="1">بِسْمِ</text>
+  </svg>
+);
+
+const CornerOrnament = ({ flip = false }) => (
+  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+    style={{ transform: flip ? 'scale(-1,-1)' : 'none' }}>
+    <path d="M4 36 L4 4 L36 4" stroke="rgba(201,148,26,0.5)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 20 L20 4" stroke="rgba(201,148,26,0.25)" strokeWidth="0.8" strokeLinecap="round"/>
+    <circle cx="4" cy="4" r="2.5" fill="rgba(201,148,26,0.45)"/>
+  </svg>
+);
+
+const LanternSVG = ({ size = 36 }) => (
+  <svg width={size} height={Math.round(size*1.5)} viewBox="0 0 36 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <line x1="18" y1="0" x2="18" y2="6" stroke="#C9941A" strokeWidth="1.5" strokeLinecap="round"/>
+    <rect x="8" y="6" width="20" height="2" rx="1" fill="#A07020"/>
+    <path d="M6 10 Q18 8 30 10 L32 42 Q18 46 4 42 Z" fill="rgba(201,148,26,0.15)" stroke="#C9941A" strokeWidth="1"/>
+    <path d="M8 10 L28 10 L30 42 Q18 44 6 42 Z" fill="rgba(232,184,75,0.12)"/>
+    <line x1="18" y1="10" x2="18" y2="42" stroke="rgba(201,148,26,0.2)" strokeWidth="0.6"/>
+    <line x1="6" y1="26" x2="30" y2="26" stroke="rgba(201,148,26,0.2)" strokeWidth="0.6"/>
+    <path d="M10 18 L26 18 L28 34 L8 34 Z" fill="rgba(245,216,122,0.2)"/>
+    <rect x="8" y="42" width="20" height="2" rx="1" fill="#A07020"/>
+    <path d="M12 44 Q18 50 24 44" fill="rgba(201,148,26,0.3)" stroke="#C9941A" strokeWidth="0.8"/>
+  </svg>
+);
+
+const IslamicPattern = () => (
+  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="islamicPat" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M20 0 L40 20 L20 40 L0 20 Z" fill="none" stroke="rgba(60,30,0,0.5)" strokeWidth="0.8"/>
+        <circle cx="20" cy="20" r="6" fill="none" stroke="rgba(60,30,0,0.3)" strokeWidth="0.6"/>
+        <path d="M20 14 L23 18 L20 22 L17 18 Z" fill="none" stroke="rgba(60,30,0,0.25)" strokeWidth="0.5"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#islamicPat)"/>
+  </svg>
+);
+
+/* ════════════════════════════════════
+   STARFIELD
+════════════════════════════════════ */
+const Starfield = () => {
+  const stars = useRef([]);
+  useEffect(() => {
+    const count = 150;
+    stars.current = Array.from({ length: count }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      size: Math.random() * 2.5 + 0.5,
+      duration: Math.random() * 25 + 15,
+      delay: Math.random() * 20,
+      gold: Math.random() > 0.72,
+    }));
+  }, []);
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+      {stars.current.map(s => (
+        <div key={s.id} className="star-particle" style={{
+          left: `${s.left}%`, bottom: '-10px',
+          width: s.size, height: s.size,
+          background: s.gold ? '#E8B84B' : '#FFFFFF',
+          animationDuration: `${s.duration}s`,
+          animationDelay: `${s.delay}s`,
+          opacity: 0,
+        }}/>
+      ))}
+    </div>
+  );
+};
+
+/* ════════════════════════════════════
+   LOADER
+════════════════════════════════════ */
+const Loader = ({ done }) => {
+  const taglines = { id: 'Memuat Kartu Ucapan...', en: 'Loading Greeting Card...' };
+  return (
+    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-5
+      transition-all duration-700 ${done ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      style={{ background: 'radial-gradient(ellipse at 50% 45%, #0E1F3D 0%, #05090F 100%)' }}>
+
+      {/* Spinning crescent + orbit ring */}
+      <div className="relative w-32 h-32 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(201,148,26,0.2) 0%, transparent 70%)' }}/>
+        <svg width="128" height="128" viewBox="0 0 128 128" className="animate-spin-slow"
+          style={{ filter: 'drop-shadow(0 0 16px rgba(201,148,26,0.4))' }}>
+          <circle cx="64" cy="64" r="56" stroke="rgba(201,148,26,0.1)" strokeWidth="1" fill="none" strokeDasharray="5 4"/>
+          <path d="M64 16 A48 48 0 1 1 63.9 16 A30 30 0 1 0 64 16 Z"
+            fill="#C9941A" transform="rotate(20 64 64)" style={{ filter: 'url(#lf)' }}/>
+          <circle cx="64" cy="8" r="5" fill="#F5D87A"/>
+          <circle cx="120" cy="64" r="3.5" fill="#E8B84B"/>
+          <circle cx="8" cy="64" r="3.5" fill="#E8B84B"/>
+          <circle cx="64" cy="120" r="3" fill="#C9941A"/>
+          <defs>
+            <filter id="lf" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+        </svg>
+      </div>
+
+      {/* Arabic calligraphy */}
+      <div className="font-amiri text-center animate-shimmer"
+        style={{ fontSize: 'clamp(1.3rem,4vw,1.9rem)', color:'#F5D87A', direction:'rtl',
+          letterSpacing:'3px', textShadow:'0 0 32px rgba(201,148,26,0.6)' }}>
+        رَمَضَانُ كَرِيمٌ
+      </div>
+
+      {/* Tagline */}
+      <p className="text-xs font-poppins font-semibold tracking-widest uppercase text-teal-hi"
+        style={{ animation: 'blinkFade 2s ease-in-out infinite' }}>
+        Memuat Kartu Ucapan...
+      </p>
+
+      {/* Progress bar */}
+      <div className="w-48 h-0.5 rounded-full overflow-hidden" style={{ background:'rgba(201,148,26,0.15)' }}>
+        <div className="h-full rounded-full bar-fill" style={{ width:0,
+          background:'linear-gradient(90deg,#12A08E,#E8B84B,#12A08E)' }}/>
+      </div>
+
+      <style>{`@keyframes blinkFade{0%,100%{opacity:.2}50%{opacity:.9}}`}</style>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════
+   LANGUAGE DATA
+════════════════════════════════════ */
+const LANG = {
+  id: {
+    langLabel: 'English', langNext: 'en',
+    hint: 'Klik amplop untuk membuka kartu ucapan',
+    ctaText: 'Buka Kartu Ucapan',
+    arabic: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+    line1: 'Minal Aaidiin',
+    line2: 'Wal Faaiziin',
+    sub: 'Mohon Maaf Lahir dan Batin',
+    body: 'Semoga di hari yang penuh kemenangan ini, Allah SWT menerima seluruh amal ibadah kita dan mengampuni segala khilaf. Kita kembali kepada fitrah yang suci.',
+    dua: 'Taqabbalallahu Minna Wa Minkum',
+    year: '1 Syawal 1446 H',
+    wishes: ['Maaf Lahir & Batin','Berkah & Barokah','Kembali Suci','Damai Sejahtera','Amal Diterima','Penuh Kebaikan'],
+    senderFrom: 'Ucapan dari',
+    senderSub: 'Majelis Permusyawaratan Kelas & OSIS',
+    btnShare: 'Bagikan Ucapan',
+    btnSave: 'Simpan Kartu',
+    toast: 'Link berhasil disalin!',
+  },
+  en: {
+    langLabel: 'Indonesia', langNext: 'id',
+    hint: 'Click the envelope to open your greeting',
+    ctaText: 'Open Greeting Card',
+    arabic: 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ',
+    line1: 'Happy Eid',
+    line2: 'Mubarak',
+    sub: 'May this Eid bring joy & endless blessings',
+    body: 'Wishing you and your beloved family a joyful Eid celebration, filled with peace, love, gratitude, and the mercy of Allah SWT.',
+    dua: 'Taqabbalallahu Minna Wa Minkum',
+    year: '1 Syawal 1446 H',
+    wishes: ['Forgiveness & Grace','Blessings Abound','Pure & Renewed','Peace & Happiness','Deeds Accepted','Full of Goodness'],
+    senderFrom: 'Greetings from',
+    senderSub: 'Student Council (MPK) & OSIS',
+    btnShare: 'Share Greeting',
+    btnSave: 'Save Card',
+    toast: 'Link copied to clipboard!',
+  }
+};
+
+/* ════════════════════════════════════
+   GREETING CARD CONTENT
+════════════════════════════════════ */
+const CardContent = ({ t, visible }) => (
+  <div className={`relative overflow-hidden rounded-2xl font-poppins
+    paper-lines ${visible ? 'reveal' : ''}`}
+    style={{
+      background: 'linear-gradient(155deg, #FFFCF0 0%, #FDF5DA 40%, #F5E8BC 100%)',
+      boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.8)',
+      border: '1px solid rgba(201,148,26,0.2)',
+    }}>
+
+    {/* Gold inner border frame */}
+    <div className="absolute inset-2.5 rounded-xl pointer-events-none"
+      style={{ border:'1px solid rgba(201,148,26,0.2)' }}>
+      <div className="absolute inset-1 rounded-lg"
+        style={{ border:'0.5px solid rgba(201,148,26,0.1)' }}/>
+    </div>
+
+    {/* Corner ornaments */}
+    <div className="absolute top-4 left-4"><CornerOrnament/></div>
+    <div className="absolute top-4 right-4" style={{ transform:'scaleX(-1)' }}><CornerOrnament/></div>
+    <div className="absolute bottom-4 left-4" style={{ transform:'scaleY(-1)' }}><CornerOrnament/></div>
+    <div className="absolute bottom-4 right-4" style={{ transform:'scale(-1)' }}><CornerOrnament/></div>
+
+    <div className="relative z-10 px-8 py-8 md:px-12 md:py-10">
+
+      {/* === ROW 1: Logos === */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        {/* MPK Logo */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
+            style={{ border:'1.5px solid rgba(201,148,26,0.45)', background:'rgba(255,255,255,0.7)',
+              boxShadow:'0 2px 12px rgba(0,0,0,0.1)' }}>
+            <img src="mpk.png" alt="MPK"
+              className="w-full h-full object-cover"
+              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+            />
+            <div className="hidden flex-col items-center justify-center w-full h-full" id="mpk-fb">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+          </div>
+          <span className="text-xs font-bold tracking-widest uppercase" style={{ color:'#C9941A', fontSize:'0.6rem' }}>MPK</span>
+        </div>
+
+        {/* Mosque center */}
+        <div className="flex-1 flex flex-col items-center">
+          <div className="moon-glow"><MosqueSVG size={100}/></div>
+        </div>
+
+        {/* OSIS Logo */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
+            style={{ border:'1.5px solid rgba(201,148,26,0.45)', background:'rgba(255,255,255,0.7)',
+              boxShadow:'0 2px 12px rgba(0,0,0,0.1)' }}>
+            <img src="osis.png" alt="OSIS"
+              className="w-full h-full object-cover"
+              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+            />
+            <div className="hidden flex-col items-center justify-center w-full h-full">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9941A" strokeWidth="1.5">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              </svg>
+            </div>
+          </div>
+          <span className="text-xs font-bold tracking-widest uppercase" style={{ color:'#C9941A', fontSize:'0.6rem' }}>OSIS</span>
+        </div>
+      </div>
+
+      {/* === ROW 2: Geometric divider === */}
+      <GeomDivider/>
+
+      {/* === ROW 3: Arabic === */}
+      <div className="text-center my-3 font-amiri"
+        style={{ direction:'rtl', fontSize:'clamp(1rem,3vw,1.3rem)',
+          color:'#C9941A', letterSpacing:'2px',
+          textShadow:'0 1px 4px rgba(201,148,26,0.2)' }}>
+        {t.arabic}
+      </div>
+
+      <GeomDivider/>
+
+      {/* === ROW 4: Crescent Moon === */}
+      <div className="flex justify-center my-3">
+        <div className="moon-glow"><CrescentMoon size={72}/></div>
+      </div>
+
+      {/* === ROW 5: Lanterns row === */}
+      <div className="flex items-end justify-center gap-6 mb-4">
+        <div className="lantern-1"><LanternSVG size={28}/></div>
+        <div className="lantern-2"><LanternSVG size={36}/></div>
+        <div className="lantern-3"><LanternSVG size={28}/></div>
+      </div>
+
+      {/* === ROW 6: Main heading === */}
+      <div className="text-center mb-2">
+        <h1 className="font-poppins font-black gold-shimmer-text leading-none tracking-tight"
+          style={{ fontSize:'clamp(2.2rem,8vw,3.6rem)' }}>
+          {t.line1}
+        </h1>
+        <h2 className="font-poppins font-bold mt-1"
+          style={{ fontSize:'clamp(1.2rem,4vw,1.9rem)', color:'#0F7A6B', letterSpacing:'1px' }}>
+          {t.line2}
+        </h2>
+      </div>
+
+      {/* === ROW 7: Sub headline === */}
+      <div className="text-center mb-1">
+        <p className="font-poppins font-bold inline-block px-5 py-1.5 rounded-full text-sm tracking-wide"
+          style={{ background:'rgba(15,122,107,0.1)', border:'1px solid rgba(15,122,107,0.25)', color:'#0F7A6B' }}>
+          {t.sub}
+        </p>
+      </div>
+
+      {/* Simple divider */}
+      <div className="ornament-line my-3">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 1 L10.8 6.4 L16.4 6.4 L12 9.7 L13.8 15.1 L9 11.8 L4.2 15.1 L6 9.7 L1.6 6.4 L7.2 6.4 Z"
+            fill="rgba(201,148,26,0.5)" stroke="#C9941A" strokeWidth="0.6"/>
+        </svg>
+      </div>
+
+      {/* === ROW 8: Body text === */}
+      <p className="font-poppins font-normal text-center leading-relaxed mb-1"
+        style={{ fontSize:'clamp(0.78rem,2vw,0.9rem)', color:'#2E200A', maxWidth:'400px', margin:'0 auto 8px' }}>
+        {t.body}
+      </p>
+      <p className="text-center font-poppins font-semibold italic mb-4"
+        style={{ fontSize:'clamp(0.75rem,1.8vw,0.85rem)', color:'#C9941A' }}>
+        — {t.dua} —
+      </p>
+
+      {/* === ROW 9: Year badge === */}
+      <div className="flex justify-center mb-5">
+        <span className="font-poppins font-semibold text-white text-xs tracking-widest uppercase px-5 py-1.5 rounded"
+          style={{ background:'linear-gradient(135deg,#0F7A6B,#12A08E)',
+            boxShadow:'0 2px 12px rgba(15,122,107,0.3)', letterSpacing:'2.5px' }}>
+          {t.year}
+        </span>
+      </div>
+
+      {/* === ROW 10: Wishes grid === */}
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        {t.wishes.map((w, i) => (
+          <div key={i} className="wish-card flex items-center gap-2.5 rounded-lg px-3 py-2.5"
+            style={{ background:'rgba(201,148,26,0.05)', border:'1px solid rgba(201,148,26,0.15)' }}>
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background:'#C9941A' }}/>
+            <span className="font-poppins font-semibold text-xs" style={{ color:'#2E200A' }}>{w}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* === ROW 11: Sender === */}
+      <div className="text-center pt-4 mb-5" style={{ borderTop:'1px solid rgba(201,148,26,0.2)' }}>
+        <p className="font-poppins font-semibold uppercase tracking-widest mb-1"
+          style={{ fontSize:'0.65rem', letterSpacing:'3px', color:'#0F7A6B' }}>
+          {t.senderFrom}
+        </p>
+        <p className="font-poppins font-bold" style={{ fontSize:'clamp(0.95rem,2.5vw,1.15rem)', color:'#C9941A' }}>
+          MPK &amp; OSIS
+        </p>
+        <p className="font-poppins font-normal italic mt-0.5"
+          style={{ fontSize:'0.72rem', color:'#4A3520', opacity:0.75 }}>
+          {t.senderSub}
+        </p>
+      </div>
+
+      {/* === ROW 12: Bottom divider === */}
+      <GeomDivider color="rgba(201,148,26,0.2)"/>
+
+    </div>
+  </div>
+);
+
+/* ════════════════════════════════════
+   ENVELOPE SCENE
+════════════════════════════════════ */
+const EnvelopeScene = ({ t, onOpen, opened }) => {
+  return (
+    <div className="relative" style={{ perspective: '1200px' }}>
+
+      {/* CARD peeking out */}
+      <div className="card-peek absolute left-1/2 z-10 w-11/12"
+        style={{
+          bottom: 'calc(100% - 24px)',
+          transform: 'translateX(-50%)',
+          opacity: 0,
+          pointerEvents: opened ? 'auto' : 'none',
+        }}
+        id="card-peek">
+        <CardContent t={t} visible={opened}/>
+      </div>
+
+      {/* ENVELOPE */}
+      <div
+        className={`relative cursor-pointer select-none transition-transform duration-300 ${!opened ? 'hover:-translate-y-2' : 'cursor-default'}`}
+        onClick={!opened ? onOpen : undefined}
+        style={{ width:'clamp(280px,75vw,440px)' }}>
+
+        {/* Envelope body */}
+        <div className="relative rounded-lg overflow-visible"
+          style={{
+            paddingTop: '65%',
+            background: 'linear-gradient(160deg, #DEC07A 0%, #C4A15A 50%, #9A7830 100%)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
+            borderRadius: '8px 8px 12px 12px',
+          }}>
+
+          {/* Inside (revealed when open) */}
+          <div className="env-inside absolute inset-0 rounded-lg"
+            style={{
+              background:'linear-gradient(180deg,#EDD58A 0%,#C8A040 100%)',
+              opacity: 0,
+            }}
+            id="env-inside"/>
+
+          {/* Islamic pattern overlay */}
+          <div className="absolute inset-0 rounded-lg overflow-hidden opacity-10 pointer-events-none">
+            <IslamicPattern/>
+          </div>
+
+          {/* Left flap */}
+          <div className="absolute bottom-0 left-0 pointer-events-none"
+            style={{
+              width:'52%', height:'55%',
+              background:'linear-gradient(135deg,#C4A15A 0%,#9A7830 100%)',
+              clipPath:'polygon(0 100%,0 0,100% 100%)',
+            }}/>
+
+          {/* Right flap */}
+          <div className="absolute bottom-0 right-0 pointer-events-none"
+            style={{
+              width:'52%', height:'55%',
+              background:'linear-gradient(225deg,#C4A15A 0%,#9A7830 100%)',
+              clipPath:'polygon(100% 100%,100% 0,0 100%)',
+            }}/>
+
+          {/* TOP FLAP */}
+          <div id="env-flap" className="env-flap absolute top-0 left-0 right-0 z-20 pointer-events-none"
+            style={{
+              height:'52%',
+              background:'linear-gradient(180deg,#DEC07A 0%,#B59040 100%)',
+              clipPath:'polygon(0 0,50% 100%,100% 0)',
+              boxShadow:'0 4px 12px rgba(0,0,0,0.3)',
+            }}>
+            {/* Flap decorative line */}
+            <div className="absolute bottom-0 left-1/4 right-1/4 h-px"
+              style={{ background:'rgba(0,0,0,0.1)' }}/>
+          </div>
+
+          {/* WAX SEAL */}
+          <div id="wax-seal" className="seal-wrap absolute top-1/2 left-1/2 z-30"
+            style={{ transform:'translate(-50%,-50%)' }}>
+            <WaxSeal/>
+          </div>
+
+          {/* Envelope label */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10 pointer-events-none"
+            id="env-label">
+            <div className="font-amiri text-center" style={{ direction:'rtl', color:'rgba(80,50,0,0.5)', fontSize:'0.8rem', letterSpacing:'2px' }}>
+              عِيدٌ مُبَارَكٌ
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════
+   TOAST
+════════════════════════════════════ */
+const Toast = ({ msg, show }) => (
+  <div className="fixed bottom-8 left-1/2 z-50 toast-slide"
+    style={{
+      transform: `translateX(-50%) translateY(${show ? '0' : '70px'})`,
+      opacity: show ? 1 : 0,
+    }}>
+    <div className="flex items-center gap-2.5 px-6 py-3 rounded-lg font-poppins font-semibold text-sm text-white"
+      style={{
+        background:'rgba(15,122,107,0.96)',
+        border:'1px solid rgba(62,203,184,0.3)',
+        boxShadow:'0 4px 20px rgba(15,122,107,0.4)',
+        backdropFilter:'blur(12px)',
+      }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      {msg}
+    </div>
+  </div>
+);
+
+/* ════════════════════════════════════
+   MAIN APP
+════════════════════════════════════ */
+const App = () => {
+  const [loaderDone, setLoaderDone]   = useState(false);
+  const [lang, setLang]               = useState('id');
+  const [opened, setOpened]           = useState(false);
+  const [showToast, setShowToast]     = useState(false);
+  const t = LANG[lang];
+
+  // Hide loader
+  useEffect(() => {
+    const timer = setTimeout(() => setLoaderDone(true), 2900);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Envelope open sequence
+  const handleOpen = useCallback(() => {
+    if (opened) return;
+    setOpened(true);
+
+    // Step 1 — flap rotates open
+    requestAnimationFrame(() => {
+      const flap = document.getElementById('env-flap');
+      const seal = document.getElementById('wax-seal');
+      const label = document.getElementById('env-label');
+      const inside = document.getElementById('env-inside');
+      if (flap)  flap.classList.add('flap-open');
+      if (seal)  { setTimeout(() => seal.classList.add('seal-gone'), 80); }
+      if (label) { setTimeout(() => { label.style.opacity = '0'; label.style.transition = 'opacity 0.3s ease'; }, 200); }
+      if (inside){ setTimeout(() => inside.classList.add('inside-show'), 500); }
+    });
+
+    // Step 2 — card slides up
+    setTimeout(() => {
+      const card = document.getElementById('card-peek');
+      if (card) card.classList.add('card-visible');
+    }, 700);
+  }, [opened]);
+
+  const toggleLang = () => setLang(l => l === 'id' ? 'en' : 'id');
+
+  const handleShare = () => {
+    const url = window.location.href;
+    const msg = lang === 'id'
+      ? 'Minal Aaidiin Wal Faaiziin — Mohon Maaf Lahir dan Batin'
+      : 'Happy Eid Mubarak — from MPK & OSIS';
+    if (navigator.share) {
+      navigator.share({ title:'Eid Mubarak', text:msg, url }).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen font-poppins" style={{ background:'#070E1C' }}>
+      <Starfield/>
+      <Loader done={loaderDone}/>
+
+      {/* LANG TOGGLE */}
+      <button onClick={toggleLang}
+        className="fixed top-5 right-5 z-40 flex items-center gap-2 font-poppins font-semibold text-xs
+          uppercase tracking-widest rounded-full px-5 py-2 transition-all duration-300"
+        style={{
+          background:'rgba(201,148,26,0.1)', border:'1.5px solid rgba(201,148,26,0.3)',
+          color:'#E8B84B', backdropFilter:'blur(12px)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background='#C9941A'; e.currentTarget.style.color='#1A1005'; }}
+        onMouseLeave={e => { e.currentTarget.style.background='rgba(201,148,26,0.1)'; e.currentTarget.style.color='#E8B84B'; }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3C10 7 10 17 12 21M12 3C14 7 14 17 12 21M3 12h18M4.5 7.5h15M4.5 16.5h15"/>
+        </svg>
+        {t.langLabel}
+      </button>
+
+      {/* MAIN SCENE */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-16">
+
+        {/* Hint text */}
+        {!opened && (
+          <div className="hint-anim mb-8">
+            <div className="flex items-center gap-2.5 font-poppins font-medium text-sm px-5 py-2.5 rounded-full"
+              style={{ background:'rgba(201,148,26,0.08)', border:'1px solid rgba(201,148,26,0.2)', color:'#F5D87A' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4l8 6 8-6M4 4h16v16H4z"/>
+              </svg>
+              {t.hint}
+            </div>
+          </div>
+        )}
+
+        {/* Envelope */}
+        <EnvelopeScene t={t} onOpen={handleOpen} opened={opened}/>
+
+        {/* Action buttons (appear after open) */}
+        {opened && (
+          <div className="flex flex-wrap gap-3 justify-center mt-6 animate-fade-up">
+            <button onClick={handleShare}
+              className="btn-gold flex items-center gap-2 font-poppins font-bold text-xs uppercase tracking-wider
+                px-6 py-3 rounded-lg text-ink"
+              style={{ letterSpacing:'1px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+              </svg>
+              {t.btnShare}
+            </button>
+            <button onClick={() => { setShowToast(true); setTimeout(()=>setShowToast(false),3000); }}
+              className="btn-teal flex items-center gap-2 font-poppins font-semibold text-xs uppercase tracking-wider
+                px-5 py-3 rounded-lg"
+              style={{ border:'1.5px solid rgba(15,122,107,0.35)', color:'#12A08E', letterSpacing:'1px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {t.btnSave}
+            </button>
+          </div>
+        )}
+
+        {/* Open CTA button */}
+        {!opened && (
+          <button onClick={handleOpen}
+            className="cta-pulse mt-8 flex items-center gap-2.5 font-poppins font-bold text-xs
+              uppercase tracking-widest px-8 py-3.5 rounded-full"
+            style={{
+              background:'rgba(201,148,26,0.1)', border:'1.5px solid rgba(201,148,26,0.35)',
+              color:'#E8B84B', letterSpacing:'1.5px',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background='#C9941A'; e.currentTarget.style.color='#1A1005'; e.currentTarget.style.animation='none'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='rgba(201,148,26,0.1)'; e.currentTarget.style.color='#E8B84B'; e.currentTarget.style.animation=''; }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4l8 6 8-6M4 4h16v16H4z"/>
+            </svg>
+            {t.ctaText}
+          </button>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 text-center pb-8 font-poppins font-medium"
+        style={{ fontSize:'0.65rem', letterSpacing:'2px', textTransform:'uppercase', color:'rgba(250,243,224,0.2)' }}>
+        <span style={{ color:'rgba(201,148,26,0.45)' }}>MPK &amp; OSIS</span>
+        &nbsp;·&nbsp; Kartu Ucapan Digital &nbsp;·&nbsp; 1446 H
+      </div>
+
+      <Toast msg={t.toast} show={showToast}/>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
