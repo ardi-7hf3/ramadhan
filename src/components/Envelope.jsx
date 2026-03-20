@@ -2,7 +2,26 @@ import { useCallback } from 'react'
 import { WaxSeal, EnvelopePattern } from './SvgIcons.jsx'
 import GreetingCard from './GreetingCard.jsx'
 
+/**
+ * ANIMATION SEQUENCE (ms):
+ *   0   — user clicks
+ *   0   — flap starts rotating open (3D flip up)
+ *  100  — wax seal dissolves
+ *  180  — arabic label fades
+ *  500  — envelope inside brightens (card pocket visible)
+ *  600  — card starts rising from inside envelope (clipped, only top visible)
+ * 1500  — card fully risen above envelope, clip released, fully interactive
+ *
+ * KEY TECHNIQUE:
+ *  The card lives inside a "clip window" that is exactly the height of the
+ *  envelope body. While the card is inside the clip window, overflow:hidden
+ *  hides everything below the envelope top — making the card appear to rise
+ *  out of the envelope pocket. Once the card clears the top, overflow is
+ *  released and the full card is visible above the envelope.
+ */
+
 const Envelope = ({ t, opened, onOpen }) => {
+
   const handleOpen = useCallback(() => {
     if (opened) return
     onOpen()
@@ -13,46 +32,45 @@ const Envelope = ({ t, opened, onOpen }) => {
       const label  = document.getElementById('env-label')
       const inside = document.getElementById('env-inside')
 
-      // 1) Open flap with 3D rotation
+      // Step 1 — flap rotates open
       if (flap) flap.classList.add('flap-open')
 
-      // 2) Dissolve wax seal
+      // Step 2 — seal dissolves
       if (seal) setTimeout(() => seal.classList.add('seal-gone'), 100)
 
-      // 3) Fade out Arabic label
+      // Step 3 — label fades
       if (label) setTimeout(() => {
         label.style.opacity    = '0'
-        label.style.transition = 'opacity 0.35s ease'
+        label.style.transition = 'opacity 0.3s ease'
       }, 180)
 
-      // 4) Reveal envelope inside
-      if (inside) setTimeout(() => inside.classList.add('inside-show'), 540)
+      // Step 4 — envelope inside brightens (pocket visible)
+      if (inside) setTimeout(() => inside.classList.add('inside-show'), 500)
     })
 
-    // 5) Slide card up and enable interaction
+    // Step 5 — card begins rising from inside the envelope
     setTimeout(() => {
-      const card = document.getElementById('card-peek')
-      if (card) {
-        // Enable pointer events BEFORE the transition starts
-        // so the card is clickable/scrollable as soon as it appears
-        card.style.pointerEvents = 'auto'
-        card.classList.add('card-visible')
-      }
-    }, 740)
+      const card    = document.getElementById('card-inner')
+      const clipWin = document.getElementById('card-clip-window')
+      if (card) card.classList.add('card-rising')
+
+      // Step 6 — once card has cleared the envelope top, release the clip
+      // and make it fully interactive
+      setTimeout(() => {
+        if (clipWin) {
+          clipWin.style.overflow  = 'visible'
+          clipWin.style.zIndex    = '50'
+        }
+        if (card) {
+          card.style.pointerEvents = 'auto'
+          card.classList.add('card-risen')
+        }
+      }, 950)
+    }, 600)
+
   }, [opened, onOpen])
 
   return (
-    /*
-     * FIX: The scene wrapper is the single positioning parent for BOTH
-     * the card and the envelope. The card (#card-peek) is rendered AFTER
-     * the envelope in DOM order AND has a higher explicit z-index (50)
-     * than anything inside the envelope (max z-index 6), so the card
-     * always paints on top — no stacking-context trapping.
-     *
-     * perspective is on the outer wrapper so the flap 3D transform works,
-     * but we avoid making the envelope body a transform-based stacking
-     * context that would bury the card beneath it.
-     */
     <div
       className="relative"
       style={{
@@ -61,39 +79,61 @@ const Envelope = ({ t, opened, onOpen }) => {
       }}
     >
 
-      {/* ══════════════════════════════════════════
-          CARD PEEK
-          - position: absolute, anchored to bottom of envelope
-          - z-index: 50 → always above the flap (z 5) and seal (z 6)
-          - pointer-events: starts 'none', set to 'auto' imperatively
-            in handleOpen so it's interactive the moment it slides up
-          - overflow-y: auto → card content is scrollable on small screens
-      ══════════════════════════════════════════ */}
+      {/*
+        ╔══════════════════════════════════════════════════════╗
+        ║  CARD CLIP WINDOW                                    ║
+        ║                                                      ║
+        ║  Sits directly on top of the envelope body,          ║
+        ║  same width, overflow:hidden initially.              ║
+        ║  The card (#card-inner) starts fully below the top  ║
+        ║  edge (translateY = 0 = flush with envelope top),   ║
+        ║  then animates to translateY(-100%) — rising up.    ║
+        ║                                                      ║
+        ║  While card is still inside the clip window,        ║
+        ║  overflow:hidden makes it look like it's coming     ║
+        ║  out of the envelope pocket.                         ║
+        ╚══════════════════════════════════════════════════════╝
+      */}
       <div
-        id="card-peek"
-        className="card-peek absolute left-1/2"
+        id="card-clip-window"
+        className="absolute left-0 right-0"
         style={{
-          bottom:        'calc(100% - 28px)',
-          transform:     'translateX(-50%)',
-          width:         '95%',
-          opacity:       0,
-          zIndex:        50,
+          /* sits at the very top of the envelope */
+          bottom:   0,
+          top:      0,
+          zIndex:   20,
+          overflow: 'hidden',      /* clips card while still inside */
           pointerEvents: 'none',
-          overflowY:     'auto',
-          maxHeight:     '80vh',
-          borderRadius:  '16px',
-          /* subtle shadow so card floats above envelope */
-          filter:        'drop-shadow(0 -8px 32px rgba(0,0,0,0.4))',
         }}
       >
-        <GreetingCard t={t} visible={opened} />
+        {/*
+          The card starts translated DOWN so it is fully hidden
+          inside the envelope (below the clip window top edge).
+          translateY(0) = card top is at envelope top (still hidden
+          behind the envelope face because clip window clips it).
+          On .card-rising → translateY(-100%) = card fully above envelope.
+        */}
+        <div
+          id="card-inner"
+          className="card-inner absolute left-1/2"
+          style={{
+            bottom:        0,
+            transform:     'translateX(-50%) translateY(100%)',
+            width:         '92%',
+            pointerEvents: 'none',
+            zIndex:        20,
+            filter:        'drop-shadow(0 -6px 24px rgba(0,0,0,0.45))',
+          }}
+        >
+          <GreetingCard t={t} visible={opened} />
+        </div>
       </div>
 
-      {/* ══════════════════════════════════════════
-          ENVELOPE BODY
-          z-index: 10 (below card's 50)
-          onClick only active when !opened
-      ══════════════════════════════════════════ */}
+      {/*
+        ╔══════════════════════════════════════════════════════╗
+        ║  ENVELOPE BODY  (z-index 10, below clip window 20)  ║
+        ╚══════════════════════════════════════════════════════╝
+      */}
       <div
         className={`relative select-none
           ${!opened ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
@@ -106,8 +146,7 @@ const Envelope = ({ t, opened, onOpen }) => {
           zIndex:       10,
         }}
       >
-
-        {/* Inside gold (revealed after open) */}
+        {/* Envelope inside / pocket */}
         <div
           id="env-inside"
           className="env-inside absolute inset-0 rounded-lg pointer-events-none"
@@ -118,7 +157,7 @@ const Envelope = ({ t, opened, onOpen }) => {
           }}
         />
 
-        {/* Islamic geometric tile pattern */}
+        {/* Islamic geometric pattern overlay */}
         <div
           className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none"
           style={{ zIndex: 2, opacity: 0.1 }}
@@ -131,11 +170,11 @@ const Envelope = ({ t, opened, onOpen }) => {
           className="absolute inset-0 rounded-lg pointer-events-none"
           style={{
             zIndex:     3,
-            background: 'linear-gradient(90deg, rgba(0,0,0,0.08) 0%, transparent 16%, transparent 84%, rgba(0,0,0,0.08) 100%)',
+            background: 'linear-gradient(90deg, rgba(0,0,0,0.09) 0%, transparent 16%, transparent 84%, rgba(0,0,0,0.09) 100%)',
           }}
         />
 
-        {/* ── Left bottom-fold triangle ── */}
+        {/* Left bottom-fold triangle */}
         <div
           className="absolute bottom-0 left-0 pointer-events-none"
           style={{
@@ -147,7 +186,7 @@ const Envelope = ({ t, opened, onOpen }) => {
           }}
         />
 
-        {/* ── Right bottom-fold triangle ── */}
+        {/* Right bottom-fold triangle */}
         <div
           className="absolute bottom-0 right-0 pointer-events-none"
           style={{
@@ -159,11 +198,7 @@ const Envelope = ({ t, opened, onOpen }) => {
           }}
         />
 
-        {/* ── TOP FLAP — 3D rotates open ──
-            z-index 5 inside the envelope's stacking context.
-            The envelope body (z-index:10 on the PARENT) is below
-            the card (z-index:50), so the flap never covers the card.
-        ── */}
+        {/* TOP FLAP — 3D rotates open, z-5 inside envelope stacking ctx */}
         <div
           id="env-flap"
           className="env-flap absolute top-0 left-0 right-0 pointer-events-none"
@@ -175,23 +210,22 @@ const Envelope = ({ t, opened, onOpen }) => {
             boxShadow:  '0 5px 14px rgba(0,0,0,0.28)',
           }}
         >
-          <div className="absolute bottom-0 left-1/4 right-1/4 h-px" style={{ background: 'rgba(0,0,0,0.12)' }} />
-          <div className="absolute top-2 left-1/3 right-1/3 h-px"   style={{ background: 'rgba(255,255,255,0.18)' }} />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px"
+            style={{ background: 'rgba(0,0,0,0.12)' }} />
+          <div className="absolute top-2 left-1/3 right-1/3 h-px"
+            style={{ background: 'rgba(255,255,255,0.18)' }} />
         </div>
 
-        {/* ── Wax seal — z-index 6 inside envelope ── */}
+        {/* Wax seal */}
         <div
           id="env-seal"
           className="seal-wrap absolute top-1/2 left-1/2"
-          style={{
-            zIndex:    6,
-            transform: 'translate(-50%, -50%)',
-          }}
+          style={{ zIndex: 6, transform: 'translate(-50%, -50%)' }}
         >
           <WaxSeal />
         </div>
 
-        {/* ── Arabic label ── */}
+        {/* Arabic label */}
         <div
           id="env-label"
           className="absolute bottom-5 left-0 right-0 flex justify-center pointer-events-none"
