@@ -1,17 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import Starfield   from './components/Starfield.jsx'
-import Loader      from './components/Loader.jsx'
-import LangToggle  from './components/LangToggle.jsx'
-import Envelope    from './components/Envelope.jsx'
-import Toast       from './components/Toast.jsx'
-import { LANG }    from './lang.js'
+import Starfield     from './components/Starfield.jsx'
+import Loader        from './components/Loader.jsx'
+import LangToggle    from './components/LangToggle.jsx'
+import GreetingCard  from './components/GreetingCard.jsx'
+import Toast         from './components/Toast.jsx'
+import { LANG }      from './lang.js'
 
 const App = () => {
-  const [loaderDone,   setLoaderDone]   = useState(false)
-  const [lang,         setLang]         = useState('id')
-  const [envelopeOpen, setEnvelopeOpen] = useState(false)
-  const [cardViewing,  setCardViewing]  = useState(false)
-  const [showToast,    setShowToast]    = useState(false)
+  const [loaderDone, setLoaderDone] = useState(false)
+  const [lang,       setLang]       = useState('id')
+  const [showToast,  setShowToast]  = useState(false)
 
   const t = LANG[lang]
 
@@ -21,21 +19,6 @@ const App = () => {
   }, [])
 
   const toggleLang = () => setLang(l => (l === 'id' ? 'en' : 'id'))
-
-  // Buka amplop — bisa dipanggil berulang (dari IDLE saja)
-  const handleOpenEnvelope = useCallback(() => {
-    setEnvelopeOpen(true)
-  }, [])
-
-  // Amplop selesai menutup (dipanggil dari Envelope saat phase kembali IDLE)
-  // → reset envelopeOpen supaya amplop bisa dibuka lagi
-  const handleEnvelopeClosed = useCallback(() => {
-    setEnvelopeOpen(false)
-    setCardViewing(false)
-  }, [])
-
-  const handleViewCard  = useCallback(() => setCardViewing(true),  [])
-  const handleCloseCard = useCallback(() => setCardViewing(false), [])
 
   const triggerToast = useCallback(() => {
     setShowToast(true)
@@ -54,61 +37,55 @@ const App = () => {
     }
   }, [lang, triggerToast])
 
-  // Tampilkan tombol buka hanya saat amplop tertutup (envelopeOpen false)
-  const showOpenButton = !envelopeOpen
-
   return (
     <div className="min-h-screen font-poppins" style={{ background: '#070E1C' }}>
       <Starfield />
       <Loader done={loaderDone} />
-      <LangToggle label={t.langLabel} onClick={toggleLang} hidden={cardViewing} />
+      <LangToggle label={t.langLabel} onClick={toggleLang} />
 
       <main
         className="relative z-10 flex flex-col items-center justify-center px-3 sm:px-6"
-        style={{ minHeight:'100dvh', paddingTop:'72px', paddingBottom:'72px', overflow:'visible' }}
+        style={{ minHeight: '100dvh', paddingTop: '72px', paddingBottom: '72px' }}
       >
-        {showOpenButton && (
-          <div className="hint-bounce mb-6 w-full flex justify-center">
-            <div className="flex items-center gap-2 font-poppins font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full"
-              style={{ fontSize:'clamp(0.7rem,3vw,0.875rem)', background:'rgba(201,148,26,0.08)', border:'1px solid rgba(201,148,26,0.22)', color:'#F5D87A' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4l8 6 8-6M4 4h16v16H4z"/>
-              </svg>
-              {t.hint}
-            </div>
-          </div>
-        )}
+        {/* Kartu ucapan langsung tampil */}
+        <div style={{ width: 'min(520px, 92vw)' }}>
+          <GreetingCard t={t} />
+        </div>
 
-        <Envelope
-          t={t}
-          envelopeOpen={envelopeOpen}
-          cardViewing={cardViewing}
-          onOpenEnvelope={handleOpenEnvelope}
-          onViewCard={handleViewCard}
-          onCloseCard={handleCloseCard}
-          onEnvelopeClosed={handleEnvelopeClosed}
-          onShare={handleShare}
-          onSave={triggerToast}
-        />
-
-        {showOpenButton && (
-          <button onClick={handleOpenEnvelope}
-            className="cta-pulse mt-6 sm:mt-8 flex items-center gap-2.5 font-poppins font-bold uppercase rounded-full"
-            style={{ background:'rgba(201,148,26,0.1)', border:'1.5px solid rgba(201,148,26,0.38)', color:'#E8B84B', letterSpacing:'1.5px', fontSize:'clamp(0.65rem,2.5vw,0.75rem)', padding:'clamp(10px,2.5vw,14px) clamp(20px,5vw,32px)' }}
-            onMouseEnter={e => { e.currentTarget.style.background='#C9941A'; e.currentTarget.style.color='#1A1005'; e.currentTarget.style.animation='none' }}
-            onMouseLeave={e => { e.currentTarget.style.background='rgba(201,148,26,0.1)'; e.currentTarget.style.color='#E8B84B'; e.currentTarget.style.animation='' }}
+        {/* Tombol Share & Save */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={handleShare}
+            className="btn-gold flex items-center gap-2 font-poppins font-bold uppercase rounded-lg"
+            style={{ color: '#1A1005', fontSize: '0.72rem', letterSpacing: '0.9px', padding: '10px 20px' }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4l8 6 8-6M4 4h16v16H4z"/>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
             </svg>
-            {t.ctaText}
+            {t.btnShare}
           </button>
-        )}
+          <button
+            onClick={triggerToast}
+            className="btn-teal-outline flex items-center gap-2 font-poppins font-semibold uppercase rounded-lg"
+            style={{ border: '1.5px solid rgba(15,122,107,0.4)', color: '#12A08E', fontSize: '0.72rem', letterSpacing: '0.9px', padding: '10px 18px' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {t.btnSave}
+          </button>
+        </div>
       </main>
 
       <footer className="relative z-10 text-center pb-6 font-poppins font-medium"
-        style={{ fontSize:'clamp(0.55rem,2vw,0.65rem)', letterSpacing:'2px', textTransform:'uppercase', color:'rgba(250,243,224,0.18)' }}>
-        <span style={{ color:'rgba(201,148,26,0.4)' }}>MPK &amp; OSIS</span>
+        style={{ fontSize: 'clamp(0.55rem,2vw,0.65rem)', letterSpacing: '2px', textTransform: 'uppercase', color: 'rgba(250,243,224,0.18)' }}>
+        <span style={{ color: 'rgba(201,148,26,0.4)' }}>MPK &amp; OSIS</span>
         &nbsp;·&nbsp; {t.footer} &nbsp;·&nbsp; 1447 H
       </footer>
 
