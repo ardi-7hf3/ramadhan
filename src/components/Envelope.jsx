@@ -69,39 +69,38 @@ const Envelope = ({
     go(PHASE.FULLSCREEN, 520)
   }, [cardViewing, go])
 
-  // ── Tutup kartu → kartu masuk amplop via inside clip → flap tutup → IDLE ──
+  // ── Tutup kartu → kartu muncul di mulut amplop → naik ke posisi peek ──
   useEffect(() => {
     if (cardViewing || phaseRef.current !== PHASE.FULLSCREEN) return
     const T0 = 350   // overlay fade out
-    const T1 = 180   // jeda sebentar kartu peek muncul
-    const T2 = 700   // kartu meluncur masuk ke dalam amplop
-    const T3 = 650   // flap menutup
+    const T1 = 220   // jeda kartu terlihat di mulut flap
+    const T2 = 900   // kartu naik ke posisi peek
     setPhase(PHASE.RETURNING)
-    go(PHASE.ABOVE_FLAP,   T0)
-    go(PHASE.ENTERING,     T0 + T1)
-    go(PHASE.CLOSING_FLAP, T0 + T1 + T2)
-    go(PHASE.IDLE,         T0 + T1 + T2 + T3)
+    go(PHASE.ABOVE_FLAP, T0)
+    go(PHASE.PEEKING,    T0 + T1 + T2)
+    // Setelah T1, set ENTERING agar transisi CSS berjalan naik ke 5%
+    go(PHASE.ENTERING,   T0 + T1)
   }, [cardViewing, go])
 
   const is    = p       => phase === p
   const isAny = (...ps) => ps.includes(phase)
 
-  // Flap terbuka dari OPENING sampai sebelum CLOSING_FLAP
-  const flapOpen   = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
-  const sealGone   = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
-  const insideShow = phase >= PHASE.OPENING && phase <= PHASE.ENTERING
+  // Flap tetap terbuka selama OPENING ke PEEKING (tidak pernah menutup saat close)
+  const flapOpen   = phase >= PHASE.OPENING
+  const sealGone   = phase >= PHASE.OPENING
+  const insideShow = phase >= PHASE.OPENING
 
   // ── Kartu di dalam amplop (overflow:hidden) ──
-  // ABOVE_FLAP : langsung muncul di posisi peek (5%) tanpa transisi
-  // ENTERING   : meluncur turun ke 110% (masuk ke dalam amplop)
-  // PEEKING    : naik ke 5% dengan spring
+  // ABOVE_FLAP : snap tanpa transisi ke level mulut flap (top ~44%)
+  //              → kartu terlihat sejajar titik ^ flap
+  // ENTERING   : slide UP ke 5% (posisi peek = sama seperti awal amplop baru dibuka)
   const cardInsideTop = (() => {
     switch (phase) {
       case PHASE.PEEKING:
       case PHASE.FLYING:
-      case PHASE.FULLSCREEN: return '5%'
-      case PHASE.ABOVE_FLAP: return '-2%'   // kartu muncul sejajar mulut amplop
-      case PHASE.ENTERING:   return '110%'
+      case PHASE.FULLSCREEN:
+      case PHASE.ENTERING:   return '5%'
+      case PHASE.ABOVE_FLAP: return '44%'   // sejajar titik ^ penutup amplop
       default:               return '110%'
     }
   })()
@@ -110,9 +109,9 @@ const Envelope = ({
     if (isAny(PHASE.IDLE, PHASE.OPENING, PHASE.FLYING, PHASE.FULLSCREEN, PHASE.RETURNING))
       return 'top 0s, opacity 0s'
     if (is(PHASE.ABOVE_FLAP))
-      return 'top 0s, opacity 0.3s ease'            // langsung snap ke posisi peek, fade in
+      return 'top 0s, opacity 0.25s ease'            // snap ke posisi flap, fade in cepat
     if (is(PHASE.ENTERING))
-      return 'top 0.72s cubic-bezier(0.55,0,0.8,1), opacity 0.35s ease 0.3s'  // meluncur masuk
+      return 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease'   // naik dengan spring
     if (is(PHASE.PEEKING))
       return 'top 0.85s cubic-bezier(0.22,1,0.36,1), opacity 0.4s ease'
     return 'top 0s, opacity 0.2s ease'
