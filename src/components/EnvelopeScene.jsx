@@ -40,8 +40,58 @@ const IslamicPattern = () => (
   </svg>
 )
 
+// ── Mini card preview (peek dari amplop — hanya ornamen & judul) ──
+const CardPeek = () => (
+  <div
+    style={{
+      background: 'linear-gradient(155deg, #FFFCF0 0%, #FDF5DA 42%, #F5E8BC 100%)',
+      border:     '1px solid rgba(201,148,26,0.25)',
+      borderRadius: '10px 10px 0 0',
+      boxShadow:  '0 -8px 32px rgba(0,0,0,0.35)',
+      padding:    '16px 20px 8px',
+      display:    'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '6px',
+    }}
+  >
+    {/* top ornament line */}
+    <div style={{
+      width: '60%', height: '1px',
+      background: 'linear-gradient(90deg, transparent, rgba(201,148,26,0.5), transparent)',
+    }} />
+    {/* gold shimmer title hint */}
+    <div style={{
+      fontFamily: 'Poppins, sans-serif',
+      fontWeight: 800,
+      fontSize:   'clamp(0.85rem, 3vw, 1.1rem)',
+      background: 'linear-gradient(90deg, #8B6310, #F5D87A, #C9941A, #F5D87A, #8B6310)',
+      backgroundSize: '200% auto',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor:  'transparent',
+      backgroundClip: 'text',
+      animation: 'goldShimmer 3s linear infinite',
+      letterSpacing: '1px',
+    }}>
+      Minal Aaidiin Wal Faaiziin
+    </div>
+    {/* bottom ornament dots */}
+    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+      {[0,1,2].map(i => (
+        <div key={i} style={{
+          width: i === 1 ? '6px' : '4px',
+          height: i === 1 ? '6px' : '4px',
+          borderRadius: '50%',
+          background: '#C9941A',
+          opacity: i === 1 ? 0.8 : 0.4,
+        }} />
+      ))}
+    </div>
+  </div>
+)
+
 // ═══════════════════════════════════════════
-//  CARD MODAL — slides up from envelope, has X close
+//  CARD MODAL
 // ═══════════════════════════════════════════
 const CardModal = ({ t, phase, onClose }) => {
   if (phase === 'hidden') return null
@@ -56,7 +106,6 @@ const CardModal = ({ t, phase, onClose }) => {
         phase === 'opening' ? 'modal-enter' :
         phase === 'closing' ? 'modal-exit'  : ''
       }`}>
-        {/* Close Button */}
         <button className="close-btn" onClick={onClose} title="Tutup kartu">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -64,7 +113,6 @@ const CardModal = ({ t, phase, onClose }) => {
             <line x1="6"  y1="6" x2="18" y2="18" />
           </svg>
         </button>
-
         <GreetingCard t={t} />
       </div>
     </div>
@@ -72,23 +120,24 @@ const CardModal = ({ t, phase, onClose }) => {
 }
 
 // ═══════════════════════════════════════════
-//  ENVELOPE SCENE — main export
+//  ENVELOPE SCENE
 // ═══════════════════════════════════════════
 const EnvelopeScene = ({ t }) => {
-  // 'closed' | 'opening' | 'open' | 'closing'
-  const [envState,  setEnvState]  = useState('closed')
-  // 'hidden' | 'opening' | 'open' | 'closing'
-  const [cardPhase, setCardPhase] = useState('hidden')
-  const [flapOpen,  setFlapOpen]  = useState(false)
-  const [sealGone,  setSealGone]  = useState(false)
-  const [insideShow,setInsideShow]= useState(false)
-  const [labelHide, setLabelHide] = useState(false)
-  const timerRef = useRef([])
+  // envelope states: 'closed' | 'opening' | 'peeking' | 'open' | 'closing'
+  const [envState,   setEnvState]   = useState('closed')
+  // card peek states: 'hidden' | 'peeking-in' | 'peeked' | 'peeking-out'
+  const [peekPhase,  setPeekPhase]  = useState('hidden')
+  // modal states
+  const [cardPhase,  setCardPhase]  = useState('hidden')
+  const [flapOpen,   setFlapOpen]   = useState(false)
+  const [sealGone,   setSealGone]   = useState(false)
+  const [insideShow, setInsideShow] = useState(false)
+  const [labelHide,  setLabelHide]  = useState(false)
+  const timers = useRef([])
 
-  const addTimer = (fn, ms) => {
+  const after = (fn, ms) => {
     const id = setTimeout(fn, ms)
-    timerRef.current.push(id)
-    return id
+    timers.current.push(id)
   }
 
   // ── OPEN sequence ──
@@ -96,63 +145,91 @@ const EnvelopeScene = ({ t }) => {
     if (envState !== 'closed') return
     setEnvState('opening')
 
-    // 1. flap rotates open
-    addTimer(() => setFlapOpen(true),   80)
+    // 1. flap opens
+    after(() => setFlapOpen(true),    80)
     // 2. seal dissolves
-    addTimer(() => setSealGone(true),   160)
+    after(() => setSealGone(true),   180)
     // 3. label fades
-    addTimer(() => setLabelHide(true),  280)
-    // 4. inside reveals
-    addTimer(() => setInsideShow(true), 550)
-    // 5. card modal begins rising
-    addTimer(() => {
+    after(() => setLabelHide(true),  300)
+    // 4. inside colour shows
+    after(() => setInsideShow(true), 560)
+    // 5. card peeks out (keluar setengah)
+    after(() => {
+      setEnvState('peeking')
+      setPeekPhase('peeking-in')
+    }, 680)
+    // 6. card fully peeked — pause sebentar biar keliatan
+    after(() => setPeekPhase('peeked'), 680 + 650)
+    // 7. kartu naik ke modal
+    after(() => {
+      setPeekPhase('peeking-out')
       setCardPhase('opening')
       setEnvState('open')
-    }, 780)
-    // 6. card settled
-    addTimer(() => setCardPhase('open'), 780 + 700)
+    }, 680 + 650 + 500)
+    // 8. card settled in modal
+    after(() => {
+      setPeekPhase('hidden')
+      setCardPhase('open')
+    }, 680 + 650 + 500 + 650)
   }, [envState])
 
-  // ── CLOSE sequence (called by CardModal's X button) ──
+  // ── CLOSE sequence ──
   const handleClose = useCallback(() => {
     if (envState !== 'open') return
 
-    // 1. card starts sinking back
+    // 1. modal card sinks
     setCardPhase('closing')
 
-    // 2. after card sinks, collapse envelope
-    addTimer(() => {
+    after(() => {
       setCardPhase('hidden')
       setEnvState('closing')
       setInsideShow(false)
 
-      addTimer(() => {
-        setFlapOpen(false)    // flap folds down
-      }, 200)
-      addTimer(() => {
-        setSealGone(false)    // seal re-appears
+      after(() => setFlapOpen(false),   200)
+      after(() => {
+        setSealGone(false)
         setLabelHide(false)
-      }, 500)
-      addTimer(() => {
-        setEnvState('closed') // fully closed — clickable again
-      }, 900)
+      }, 520)
+      after(() => setEnvState('closed'), 950)
     }, 520)
   }, [envState])
 
   const isClickable = envState === 'closed'
 
+  // peek card translateY: hidden=100%, peeking-in → -50%, peeked → -50%, peeking-out → -120%
+  const peekY = {
+    hidden:      '100%',
+    'peeking-in':'−50%',   // akan pakai nilai nyata di bawah
+    peeked:      '-50%',
+    'peeking-out':'-130%',
+  }
+
+  const cardTranslateY =
+    peekPhase === 'hidden'       ? '100%'   :
+    peekPhase === 'peeking-in'   ? '-48%'   :
+    peekPhase === 'peeked'       ? '-48%'   :
+    peekPhase === 'peeking-out'  ? '-130%'  : '100%'
+
+  const cardOpacity =
+    peekPhase === 'hidden'      ? 0 :
+    peekPhase === 'peeking-out' ? 0 : 1
+
+  const cardTransition =
+    peekPhase === 'peeking-in'  ? 'transform 0.65s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease' :
+    peekPhase === 'peeked'      ? 'none' :
+    peekPhase === 'peeking-out' ? 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease' :
+    'none'
+
   return (
     <>
-      {/* ── Card Modal (portal-like, fixed overlay) ── */}
       <CardModal t={t} phase={cardPhase} onClose={handleClose} />
 
-      {/* ── Envelope wrapper ── */}
       <div
         className={`envelope-scene ${isClickable ? 'envelope-hover cursor-pointer' : 'cursor-default'}`}
         onClick={isClickable ? handleOpen : undefined}
         style={{ perspective: '1200px', width: 'clamp(280px, 75vw, 420px)' }}
       >
-        {/* ── Hint label ── */}
+        {/* Hint */}
         {isClickable && (
           <div className="hint-bounce flex justify-center mb-5">
             <div
@@ -172,92 +249,117 @@ const EnvelopeScene = ({ t }) => {
           </div>
         )}
 
-        {/* ── Envelope body ── */}
-        <div
-          className="relative rounded-lg"
-          style={{
-            paddingTop:  '65%',
-            background:  'linear-gradient(160deg, #DEC07A 0%, #C4A15A 50%, #9A7830 100%)',
-            boxShadow:   '0 24px 60px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
-            borderRadius:'8px 8px 12px 12px',
-            overflow:    'visible',
-          }}
-        >
-          {/* Inside revealed when open */}
-          <div
-            className="absolute inset-0 rounded-lg"
-            style={{
-              background: 'linear-gradient(180deg, #EDD58A 0%, #C8A040 100%)',
-              opacity:    insideShow ? 1 : 0,
-              transition: 'opacity 0.4s ease 0.3s',
-            }}
-          />
+        {/* ── Envelope + peek card wrapper (overflow hidden atas, visible bawah) ── */}
+        <div style={{ position: 'relative' }}>
 
-          {/* Islamic pattern overlay */}
-          <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none" style={{ opacity: 0.1 }}>
-            <IslamicPattern />
-          </div>
-
-          {/* Left bottom flap */}
-          <div className="absolute bottom-0 left-0 pointer-events-none"
-            style={{
-              width: '52%', height: '55%',
-              background: 'linear-gradient(135deg, #C4A15A 0%, #9A7830 100%)',
-              clipPath: 'polygon(0 100%, 0 0, 100% 100%)',
-            }}
-          />
-
-          {/* Right bottom flap */}
-          <div className="absolute bottom-0 right-0 pointer-events-none"
-            style={{
-              width: '52%', height: '55%',
-              background: 'linear-gradient(225deg, #C4A15A 0%, #9A7830 100%)',
-              clipPath: 'polygon(100% 100%, 100% 0, 0 100%)',
-            }}
-          />
-
-          {/* TOP FLAP — animates open/close */}
-          <div
-            className="absolute top-0 left-0 right-0 z-20 pointer-events-none"
-            style={{
-              height:          '52%',
-              background:      'linear-gradient(180deg, #DEC07A 0%, #B59040 100%)',
-              clipPath:        'polygon(0 0, 50% 100%, 100% 0)',
-              boxShadow:       '0 4px 12px rgba(0,0,0,0.3)',
-              transformStyle:  'preserve-3d',
-              transformOrigin: 'top center',
-              transform:       flapOpen ? 'rotateX(-185deg)' : 'rotateX(0deg)',
-              transition:      'transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          />
-
-          {/* WAX SEAL */}
-          <div
-            className="absolute top-1/2 left-1/2 z-30"
-            style={{
-              transform:  `translate(-50%, -50%) scale(${sealGone ? 0 : 1}) rotate(${sealGone ? '30deg' : '0deg'})`,
-              opacity:    sealGone ? 0 : 1,
-              transition: 'transform 0.5s ease, opacity 0.4s ease',
-            }}
-          >
-            <WaxSeal />
-          </div>
-
-          {/* Envelope label */}
-          <div
-            className="absolute bottom-4 left-0 right-0 flex justify-center z-10 pointer-events-none"
-            style={{
-              opacity:    labelHide ? 0 : 1,
-              transition: 'opacity 0.35s ease',
-            }}
-          >
-            <div className="font-amiri text-center"
-              style={{ direction: 'rtl', color: 'rgba(80,50,0,0.5)', fontSize: '0.8rem', letterSpacing: '2px' }}>
-              عِيدٌ مُبَارَكٌ
+          {/* ── PEEK CARD — muncul dari dalam amplop, keluar setengah ── */}
+          {peekPhase !== 'hidden' && (
+            <div
+              style={{
+                position:   'absolute',
+                bottom:     0,
+                left:       '50%',
+                transform:  `translateX(-50%) translateY(${cardTranslateY})`,
+                opacity:    cardOpacity,
+                transition: cardTransition,
+                width:      '88%',
+                zIndex:     5,
+                pointerEvents: 'none',
+              }}
+            >
+              <CardPeek />
             </div>
-          </div>
+          )}
 
-        </div>{/* end envelope body */}
+          {/* ── Envelope body ── */}
+          <div
+            className="relative rounded-lg"
+            style={{
+              position:    'relative',
+              zIndex:      10,
+              paddingTop:  '65%',
+              background:  'linear-gradient(160deg, #DEC07A 0%, #C4A15A 50%, #9A7830 100%)',
+              boxShadow:   '0 24px 60px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
+              borderRadius:'8px 8px 12px 12px',
+              overflow:    'visible',
+            }}
+          >
+            {/* Inside */}
+            <div
+              className="absolute inset-0 rounded-lg"
+              style={{
+                background: 'linear-gradient(180deg, #EDD58A 0%, #C8A040 100%)',
+                opacity:    insideShow ? 1 : 0,
+                transition: 'opacity 0.4s ease 0.3s',
+              }}
+            />
+
+            {/* Pattern */}
+            <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none" style={{ opacity: 0.1 }}>
+              <IslamicPattern />
+            </div>
+
+            {/* Left flap */}
+            <div className="absolute bottom-0 left-0 pointer-events-none"
+              style={{
+                width: '52%', height: '55%',
+                background: 'linear-gradient(135deg, #C4A15A 0%, #9A7830 100%)',
+                clipPath: 'polygon(0 100%, 0 0, 100% 100%)',
+              }}
+            />
+
+            {/* Right flap */}
+            <div className="absolute bottom-0 right-0 pointer-events-none"
+              style={{
+                width: '52%', height: '55%',
+                background: 'linear-gradient(225deg, #C4A15A 0%, #9A7830 100%)',
+                clipPath: 'polygon(100% 100%, 100% 0, 0 100%)',
+              }}
+            />
+
+            {/* Top flap */}
+            <div
+              className="absolute top-0 left-0 right-0 z-20 pointer-events-none"
+              style={{
+                height:          '52%',
+                background:      'linear-gradient(180deg, #DEC07A 0%, #B59040 100%)',
+                clipPath:        'polygon(0 0, 50% 100%, 100% 0)',
+                boxShadow:       '0 4px 12px rgba(0,0,0,0.3)',
+                transformStyle:  'preserve-3d',
+                transformOrigin: 'top center',
+                transform:       flapOpen ? 'rotateX(-185deg)' : 'rotateX(0deg)',
+                transition:      'transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
+
+            {/* Wax seal */}
+            <div
+              className="absolute top-1/2 left-1/2 z-30"
+              style={{
+                transform:  `translate(-50%, -50%) scale(${sealGone ? 0 : 1}) rotate(${sealGone ? '30deg' : '0deg'})`,
+                opacity:    sealGone ? 0 : 1,
+                transition: 'transform 0.5s ease, opacity 0.4s ease',
+              }}
+            >
+              <WaxSeal />
+            </div>
+
+            {/* Label */}
+            <div
+              className="absolute bottom-4 left-0 right-0 flex justify-center z-10 pointer-events-none"
+              style={{
+                opacity:    labelHide ? 0 : 1,
+                transition: 'opacity 0.35s ease',
+              }}
+            >
+              <div className="font-amiri text-center"
+                style={{ direction: 'rtl', color: 'rgba(80,50,0,0.5)', fontSize: '0.8rem', letterSpacing: '2px' }}>
+                عِيدٌ مُبَارَكٌ
+              </div>
+            </div>
+
+          </div>{/* end envelope body */}
+        </div>{/* end relative wrapper */}
 
       </div>
     </>
