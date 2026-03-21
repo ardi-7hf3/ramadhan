@@ -57,8 +57,7 @@ const App = () => {
           color:         'rgba(250,243,224,0.18)',
         }}
       >
-        <span style={{ color: 'rgba(201,148,26,0.4)' }}>MPK &amp; OSIS</span>
-        &nbsp;·&nbsp; {t.footer} &nbsp;·&nbsp; 1447 H
+        {t.footer} &nbsp;·&nbsp; 1447 H
       </footer>
 
       <Toast msg={t.toast} show={showToast} />
