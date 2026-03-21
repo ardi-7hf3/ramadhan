@@ -174,18 +174,7 @@ const GreetingCard = ({ t }) => (
         </span>
       </div>
 
-      {/* ── 12. Sender box ── */}
-      <div className="text-center pt-3 mb-2"
-        style={{ borderTop: '1px solid rgba(201,148,26,0.2)' }}>
-        <p className="font-poppins font-semibold uppercase tracking-widest mb-1"
-          style={{ fontSize: 'clamp(0.55rem, 1.5vw, 0.62rem)', letterSpacing: '3px', color: '#0F7A6B' }}>
-          {t.senderFrom}
-        </p>
-        <p className="font-poppins font-black"
-          style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)', color: '#C9941A' }}>
-          Azril Ardiansyah Febriyanto
-        </p>
-      </div>
+
 
       {/* ── 13. Bottom divider ── */}
       <GeomDivider opacity={0.5} />
