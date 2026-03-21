@@ -1,4 +1,4 @@
-# 🌙 Kartu Ucapan Eid Mubarak — MPK & OSIS
+# 🌙 Kartu Ucapan Eid Mubarak — Azril
 
 Website kartu ucapan digital bilingual (Indonesia / English) dengan animasi amplop interaktif, dibangun dengan **React 18 + Vite + Tailwind CSS**.
 
@@ -30,8 +30,6 @@ eid-card-project/
 ├── postcss.config.js           # PostCSS config
 ├── public/
 │   ├── favicon.svg             # Favicon bulan sabit
-│   ├── mpk.png                 # ← LETAKKAN LOGO MPK DI SINI
-│   ├── osis.png                # ← LETAKKAN LOGO OSIS DI SINI
 │   └── LOGO_README.txt         # Instruksi logo
 └── src/
     ├── main.jsx                # React entry point
@@ -43,7 +41,6 @@ eid-card-project/
         ├── Starfield.jsx       # Partikel bintang background
         ├── Loader.jsx          # Intro loader screen
         ├── LangToggle.jsx      # Tombol ganti bahasa
-        ├── Envelope.jsx        # Amplop + animasi buka
         ├── GreetingCard.jsx    # Kartu ucapan (isi)
         ├── Toast.jsx           # Notifikasi toast
         └── (README ini)
@@ -78,20 +75,6 @@ npm run build
 ```bash
 npm run preview
 ```
-
----
-
-## 🖼️ Menambahkan Logo
-
-Letakkan file logo di folder `public/`:
-
-```
-public/
-  mpk.png     ← Logo MPK (format: PNG, ukuran: 200×200px disarankan)
-  osis.png    ← Logo OSIS (format: PNG, ukuran: 200×200px disarankan)
-```
-
-Jika file logo tidak ditemukan, ikon SVG fallback akan tampil otomatis.
 
 ---
 
@@ -130,4 +113,4 @@ Edit `src/index.css` → section animasi
 
 ---
 
-*Dibuat dengan ❤️ untuk MPK & OSIS — Ramadhan 1446 H*
+*Dibuat oleh Ardi 7HF3 — Ramadhan 1447 H / 2026 M*
