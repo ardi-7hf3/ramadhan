@@ -34,7 +34,6 @@ const IslamicPattern = () => (
   </svg>
 )
 
-// Card Modal (full overlay setelah kartu keluar penuh)
 const CardModal = ({ t, phase, onClose }) => {
   if (phase === 'hidden') return null
   return (
@@ -84,46 +83,33 @@ const CardModal = ({ t, phase, onClose }) => {
   )
 }
 
-// ════════════════════════════════════════════
-//  ENVELOPE SCENE
-// ════════════════════════════════════════════
 const EnvelopeScene = ({ t }) => {
-  // States
-  const [envState,   setEnvState]   = useState('closed')   // closed|opening|peeking|open|closing
-  const [cardPhase,  setCardPhase]  = useState('hidden')   // hidden|opening|open|closing
+  const [envState,   setEnvState]   = useState('closed')
+  const [cardPhase,  setCardPhase]  = useState('hidden')
   const [flapOpen,   setFlapOpen]   = useState(false)
   const [sealGone,   setSealGone]   = useState(false)
   const [insideShow, setInsideShow] = useState(false)
   const [labelHide,  setLabelHide]  = useState(false)
-  const [peekStep,   setPeekStep]   = useState(0)
-  // 0 = kartu tersembunyi di bawah (dalam amplop)
-  // 1 = kartu naik setengah (peek, kelihatan dari mulut amplop)
-  // 2 = pause di posisi peek
-  // 3 = kartu terbang ke atas (hilang, modal muncul)
   const timers = useRef([])
   const after = (fn, ms) => { const id = setTimeout(fn, ms); timers.current.push(id) }
 
+  // Klik amplop → flap buka → tampilkan kartu
   const handleOpen = useCallback(() => {
     if (envState !== 'closed') return
     setEnvState('opening')
 
-    after(() => setFlapOpen(true),    100)   // flap buka
-    after(() => setSealGone(true),    200)   // seal hilang
-    after(() => setLabelHide(true),   320)   // label hilang
-    after(() => setInsideShow(true),  560)   // dalam amplop terlihat
-    after(() => setPeekStep(1),       780)   // kartu mulai naik dari dalam
-    after(() => setPeekStep(2),      1480)   // kartu pause di setengah jalan
-    after(() => {                            // kartu terbang ke atas + modal muncul
-      setPeekStep(3)
+    after(() => setFlapOpen(true),    100)
+    after(() => setSealGone(true),    200)
+    after(() => setLabelHide(true),   300)
+    after(() => setInsideShow(true),  550)
+    after(() => {
       setCardPhase('opening')
       setEnvState('open')
-    }, 2100)
-    after(() => {                            // modal settled, peek card hilang
-      setPeekStep(0)
-      setCardPhase('open')
-    }, 2700)
+    }, 800)
+    after(() => setCardPhase('open'), 800 + 650)
   }, [envState])
 
+  // Klik close → kartu hilang → flap tutup
   const handleClose = useCallback(() => {
     if (envState !== 'open') return
     setCardPhase('closing')
@@ -138,28 +124,6 @@ const EnvelopeScene = ({ t }) => {
   }, [envState])
 
   const isClickable = envState === 'closed'
-
-  // ── Posisi kartu peek (translateY relatif terhadap amplop) ──
-  // Kartu diposisikan absolute di dalam envelope, bottom: 0
-  // Step 0: tersembunyi di bawah (translateY 0, tidak kelihatan karena di dalam amplop)
-  // Step 1: naik sampai setengah keluar dari mulut amplop
-  // Step 2: diam
-  // Step 3: terbang jauh ke atas
-  const peekTranslateY =
-    peekStep === 0 ? '10%'   :   // tersembunyi di dalam (hampir di bawah amplop)
-    peekStep === 1 ? '-52%'  :   // setengah keluar dari atas amplop
-    peekStep === 2 ? '-52%'  :   // pause
-    peekStep === 3 ? '-160%' :   // terbang ke atas
-    '10%'
-
-  const peekOpacity =
-    peekStep === 0 ? 0 :
-    peekStep === 3 ? 0 : 1
-
-  const peekTransition =
-    peekStep === 1 ? 'transform 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.25s ease' :
-    peekStep === 3 ? 'transform 0.5s cubic-bezier(0.4,0,1,1), opacity 0.2s ease' :
-    'none'
 
   return (
     <>
@@ -190,123 +154,20 @@ const EnvelopeScene = ({ t }) => {
           </div>
         )}
 
-        {/*
-          ── STRUKTUR KUNCI ──
-
-          [envelope-outer]  → position: relative, overflow: VISIBLE
-            [peek-card]     → position: absolute, bottom: 0, z-index: 5
-                              naik via translateY negatif melewati mulut amplop
-            [envelope-body] → position: relative, z-index: 10
-                              menutupi bagian bawah peek-card (ilusi kartu di dalam)
-        */}
+        {/* Envelope */}
         <div
           onClick={isClickable ? handleOpen : undefined}
           style={{
             position: 'relative',
             width: '100%',
-            // ruang ekstra di atas agar kartu peek tidak terpotong saat naik
-            paddingTop: '90px',
             cursor: isClickable ? 'pointer' : 'default',
             transition: 'transform 0.3s ease',
           }}
           onMouseEnter={e => { if (isClickable) e.currentTarget.style.transform = 'translateY(-6px)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
-
-          {/* ══ PEEK CARD ══ */}
-          {peekStep > 0 && (
-            <div style={{
-              position:   'absolute',
-              bottom:     0,
-              left:       '50%',
-              width:      '84%',
-              zIndex:     5,           // di BAWAH envelope body (z:10)
-              pointerEvents: 'none',
-              transform:  `translateX(-50%) translateY(${peekTranslateY})`,
-              opacity:    peekOpacity,
-              transition: peekTransition,
-            }}>
-              {/* Mini preview kartu */}
-              <div style={{
-                position: 'relative',
-                background: 'linear-gradient(155deg, #FFFCF0 0%, #FDF5DA 45%, #F5E8BC 100%)',
-                border: '1px solid rgba(201,148,26,0.3)',
-                borderRadius: '10px 10px 0 0',
-                boxShadow: '0 -8px 32px rgba(0,0,0,0.4), 0 -2px 8px rgba(0,0,0,0.2)',
-                padding: '18px 22px 14px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
-                backgroundImage: 'repeating-linear-gradient(transparent 0px, transparent 29px, rgba(160,120,40,0.065) 30px)',
-              }}>
-                {/* Corner ornament kiri */}
-                <div style={{ position: 'absolute', top: 8, left: 8 }}>
-                  <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                    <path d="M4 36 L4 4 L36 4" stroke="rgba(201,148,26,0.55)" strokeWidth="1.5" strokeLinecap="round"/>
-                    <circle cx="4" cy="4" r="2.5" fill="rgba(201,148,26,0.55)"/>
-                  </svg>
-                </div>
-                {/* Corner ornament kanan */}
-                <div style={{ position: 'absolute', top: 8, right: 8 }}>
-                  <svg width="20" height="20" viewBox="0 0 40 40" fill="none" style={{ transform: 'scaleX(-1)' }}>
-                    <path d="M4 36 L4 4 L36 4" stroke="rgba(201,148,26,0.55)" strokeWidth="1.5" strokeLinecap="round"/>
-                    <circle cx="4" cy="4" r="2.5" fill="rgba(201,148,26,0.55)"/>
-                  </svg>
-                </div>
-
-                {/* Garis emas */}
-                <div style={{
-                  width: '50%', height: '1px',
-                  background: 'linear-gradient(90deg, transparent, rgba(201,148,26,0.6), transparent)',
-                }} />
-
-                {/* Teks arab */}
-                <div style={{
-                  fontFamily: 'Amiri, serif', direction: 'rtl',
-                  fontSize: 'clamp(0.78rem, 2.5vw, 0.95rem)',
-                  color: '#B8840E', letterSpacing: '2px',
-                }}>
-                  مِنَ الْعَائِدِيْنَ وَالْفَائِزِيْنَ
-                </div>
-
-                {/* Judul shimmer */}
-                <div style={{
-                  fontFamily: 'Poppins, sans-serif', fontWeight: 800,
-                  fontSize: 'clamp(0.85rem, 3vw, 1.05rem)',
-                  background: 'linear-gradient(90deg, #8B6310 0%, #F5D87A 35%, #C9941A 60%, #F5D87A 80%, #8B6310 100%)',
-                  backgroundSize: '200% auto',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  animation: 'goldShimmer 3s linear infinite',
-                  letterSpacing: '0.5px', textAlign: 'center',
-                }}>
-                  Minal Aaidiin Wal Faaiziin
-                </div>
-
-                {/* Sub */}
-                <div style={{
-                  fontFamily: 'Poppins, sans-serif', fontWeight: 600,
-                  fontSize: 'clamp(0.58rem, 1.8vw, 0.68rem)',
-                  color: '#0F7A6B', letterSpacing: '1px',
-                }}>
-                  Mohon Maaf Lahir dan Batin
-                </div>
-
-                {/* Dot ornamen */}
-                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  {[4,7,4].map((s,i) => (
-                    <div key={i} style={{
-                      width: s, height: s, borderRadius: '50%',
-                      background: '#C9941A', opacity: i===1 ? 0.85 : 0.4,
-                    }}/>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ══ ENVELOPE BODY (z:10, menutupi bagian bawah peek card) ══ */}
           <div style={{
             position: 'relative',
-            zIndex: 10,
             paddingTop: '65%',
             background: 'linear-gradient(160deg, #DEC07A 0%, #C4A15A 50%, #9A7830 100%)',
             boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
@@ -344,7 +205,7 @@ const EnvelopeScene = ({ t }) => {
               clipPath: 'polygon(100% 100%, 100% 0, 0 100%)',
             }} />
 
-            {/* Top flap — animasi buka/tutup */}
+            {/* Top flap */}
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0,
               zIndex: 20, pointerEvents: 'none',
@@ -384,8 +245,8 @@ const EnvelopeScene = ({ t }) => {
               </div>
             </div>
 
-          </div>{/* end envelope body */}
-        </div>{/* end clickable wrapper */}
+          </div>
+        </div>
       </div>
     </>
   )
