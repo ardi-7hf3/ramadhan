@@ -219,7 +219,7 @@ const EnvelopeScene = ({ t }) => {
           style={{
             position:  'relative',
             width:     '100%',
-            paddingTop:'56px', // ruang untuk kartu peek naik ke atas
+            paddingTop:'80px', // ruang untuk kartu peek naik ke atas
             cursor:    isClickable ? 'pointer' : 'default',
             transition:'transform 0.3s ease',
           }}
