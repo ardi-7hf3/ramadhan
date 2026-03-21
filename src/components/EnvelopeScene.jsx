@@ -259,31 +259,6 @@ const EnvelopeScene = ({ t }) => {
 
         </div>{/* end envelope body */}
 
-        {/* ── Open CTA button (below envelope when closed) ── */}
-        {isClickable && (
-          <div className="flex justify-center mt-7">
-            <button
-              className="cta-pulse flex items-center gap-2.5 font-poppins font-bold uppercase rounded-full"
-              style={{
-                background:    'rgba(201,148,26,0.1)',
-                border:        '1.5px solid rgba(201,148,26,0.35)',
-                color:         '#E8B84B',
-                fontSize:      '0.72rem',
-                letterSpacing: '1.5px',
-                padding:       '10px 28px',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#C9941A'; e.currentTarget.style.color = '#1A1005' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(201,148,26,0.1)'; e.currentTarget.style.color = '#E8B84B' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4l8 6 8-6M4 4h16v16H4z" />
-              </svg>
-              {t.ctaText}
-            </button>
-          </div>
-        )}
-
       </div>
     </>
   )
