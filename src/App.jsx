@@ -32,8 +32,18 @@ const App = () => {
       <LangToggle label={t.langLabel} onClick={toggleLang} />
 
       <main
-        className="relative z-10 flex flex-col items-center justify-center px-3 sm:px-6"
-        style={{ minHeight: '100dvh', paddingTop: '72px', paddingBottom: '72px' }}
+        style={{
+          position:       'relative',
+          zIndex:         10,
+          minHeight:      '100dvh',
+          display:        'flex',
+          flexDirection:  'column',
+          alignItems:     'center',
+          justifyContent: 'center',
+          padding:        '72px 12px',
+          /* PENTING: overflow visible agar peek card tidak terpotong */
+          overflow:       'visible',
+        }}
       >
         <EnvelopeScene t={t} onToast={triggerToast} />
       </main>
